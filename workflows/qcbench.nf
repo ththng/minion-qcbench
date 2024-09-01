@@ -6,6 +6,7 @@
 
 include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+include { NOQC                   } from '../modules/local/noqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -25,6 +26,16 @@ workflow QCBENCH {
     main:
 
     ch_versions = Channel.empty()
+
+    //
+    // MODULE: NOQC
+    //
+    noqc_ch = NOQC(ch_samplesheet)
+
+    emit:
+    noqc_ch
+
+    /*
     ch_multiqc_files = Channel.empty()
 
     //
@@ -89,6 +100,7 @@ workflow QCBENCH {
     emit:
     multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
     versions       = ch_versions                 // channel: [ path(versions.yml) ]
+    */
 }
 
 /*

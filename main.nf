@@ -43,7 +43,7 @@ workflow MINION_QCBENCH {
     )
 
     emit:
-    multiqc_report = QCBENCH.out.multiqc_report // channel: /path/to/multiqc_report.html
+    QCBENCH.out // channel: /path/to/multiqc_report.html
 
 }
 /*
@@ -76,6 +76,8 @@ workflow {
         PIPELINE_INITIALISATION.out.samplesheet
     )
 
+    MINION_QCBENCH.out.view()
+
     //
     // SUBWORKFLOW: Run completion tasks
     //
@@ -86,7 +88,7 @@ workflow {
         params.outdir,
         params.monochrome_logs,
         params.hook_url,
-        MINION_QCBENCH.out.multiqc_report
+        MINION_QCBENCH.out
     )
 }
 
