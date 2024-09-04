@@ -7,6 +7,7 @@
 include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { NOQC                   } from '../modules/local/noqc/main'
+include { CHOPPER                } from '../modules/nf-core/chopper/main'
 include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -28,12 +29,42 @@ workflow QCBENCH {
     ch_versions = Channel.empty()
 
     //
+    // QC TOOLS
+    //
+
+    //
+    // TODO: make subworkflow and import it??
+    // Takes the name of the QC tool and an array of the quality scores to be tested
+    // Returns a modified samplesheet enriched with the meta data which QC tool with which quality score was used
+    //
+    def addQualityScoresAndQC = { qc_tool, quality_scores ->
+        ch_samplesheet.flatMap { meta, filePath ->
+            quality_scores.collect { quality ->
+                [[id: meta.id, single_end: meta.single_end, quality: quality, qc: qc_tool], filePath]
+            }
+        }
+    }
+
+    //
     // MODULE: NOQC
     //
-    noqc_ch = NOQC(ch_samplesheet)
+    ch_samplesheet_noqc = addQualityScoresAndQC('noqc', [0])
+    noqc_ch = NOQC(ch_samplesheet_noqc)
+
+    //
+    // MODULE: CHOPPER
+    //
+    ch_samplesheet_qs_chopper = addQualityScoresAndQC('chopper', params.quality_scores)
+    chopper_ch = CHOPPER(ch_samplesheet_qs_chopper)
+
+    //
+    // Concatenate all items emitted by the different QC Tools
+    //
+    qc_tools_ch = chopper_ch.fastq
+        .concat(noqc_ch)
 
     emit:
-    noqc_ch
+    qc_tools_ch
 
     /*
     ch_multiqc_files = Channel.empty()

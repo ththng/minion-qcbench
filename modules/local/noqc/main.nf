@@ -3,18 +3,18 @@ process NOQC {
     label 'process_single'
 
     input:
-    tuple val (meta), path (reads)
+    tuple val (meta), path (fastq)
 
     output:
-    tuple val (meta), val (prefix), path ("*.fastq.gz")
+    tuple val (meta), path ("*.fastq.gz")
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
-    prefix = "${meta.id}_noqc"
+    def prefix = task.ext.prefix ?: "${meta.id}"
 
     """
-    cp $reads ${prefix}.fastq.gz
+    cp $fastq ${prefix}.fastq.gz
     """
 }
