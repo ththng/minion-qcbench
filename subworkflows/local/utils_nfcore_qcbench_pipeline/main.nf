@@ -226,3 +226,15 @@ def methodsDescriptionText(mqc_methods_yaml) {
 
     return description_html.toString()
 }
+
+//
+// Add information about which QC tool is used and which min mean quality score is set as threshold to the meta map
+// If multiple quality thresholds are tested for one tool, multiple inputs are returned
+//
+def addQCToolAndQualityScoreToMeta(ch_samplesheet, qc_tool, quality_scores) {
+    return ch_samplesheet.flatMap { meta, filePath ->
+        quality_scores.collect { quality ->
+            [[id: meta.id, single_end: meta.single_end, quality: quality, qc: qc_tool], filePath]
+        }
+    }
+}
