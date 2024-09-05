@@ -9,11 +9,13 @@ include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { NOQC                   } from '../modules/local/noqc/main'
 include { CHOPPER                } from '../modules/nf-core/chopper/main'
 include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
+include { FLYE                   } from '../modules/nf-core/flye/main'
 include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-include { addQCToolAndQualityScoreToMeta } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { create_qctool_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 
 /*
@@ -31,27 +33,27 @@ workflow QCBENCH {
 
     ch_versions = Channel.empty()
 
-/*
-========================================================================================
-    QC TOOLS
-========================================================================================
-*/
+    /*
+    ====================================================================================
+        QC TOOLS
+    ====================================================================================
+    */
     //
     // MODULE: NOQC
     //
-    ch_samplesheet_noqc = addQCToolAndQualityScoreToMeta(ch_samplesheet, 'noqc', [0])
+    ch_samplesheet_noqc = create_qctool_samplesheet(ch_samplesheet, 'noqc', [0])
     noqc_ch = NOQC(ch_samplesheet_noqc)
 
     //
     // MODULE: CHOPPER
     //
-    ch_samplesheet_qs_chopper = addQCToolAndQualityScoreToMeta(ch_samplesheet, 'chopper', params.quality_scores)
+    ch_samplesheet_qs_chopper = create_qctool_samplesheet(ch_samplesheet, 'chopper', params.quality_scores)
     chopper_ch = CHOPPER(ch_samplesheet_qs_chopper)
 
     //
     // MODULE: PRINSEQ
     //
-    ch_samplesheet_qs_prinseq = addQCToolAndQualityScoreToMeta(ch_samplesheet, 'prinseq', params.quality_scores)
+    ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores)
     prinseq_ch = PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq).good_reads
 
     //
@@ -60,8 +62,30 @@ workflow QCBENCH {
     qc_tools_ch = chopper_ch.fastq
         .concat(noqc_ch, prinseq_ch)
 
+    /*
+    ====================================================================================
+        ASSEMBLY
+    ====================================================================================
+    */
+    //
+    // MODULE: FLYE
+    //
+    ch_samplesheet_flye = create_flye_samplesheet(qc_tools_ch, params.flye_modes)
+    assembly_ch = FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode).fasta
+
+    /*
+    ====================================================================================
+        QUALITY ASSESSMENT
+    ====================================================================================
+    */
+    //
+    // MODULE: QUAST
+    //
+    
+
+
     emit:
-    qc_tools_ch
+    assembly_ch
 
     /*
     ch_multiqc_files = Channel.empty()

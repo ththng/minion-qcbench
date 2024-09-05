@@ -42,7 +42,7 @@ workflow MINION_QCBENCH {
         samplesheet
     )
 
-    QCBENCH.out.view()
+    //QCBENCH.out.view()
 
     emit:
     QCBENCH.out // channel: /path/to/multiqc_report.html
