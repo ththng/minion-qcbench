@@ -10,6 +10,7 @@ include { NOQC                   } from '../modules/local/noqc/main'
 include { CHOPPER                } from '../modules/nf-core/chopper/main'
 include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
 include { FLYE                   } from '../modules/nf-core/flye/main'
+include { QUAST                  } from '../modules/nf-core/quast/main'
 include { paramsSummaryMap       } from 'plugin/nf-validation'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -81,8 +82,17 @@ workflow QCBENCH {
     //
     // MODULE: QUAST
     //
-    
+    ch_samplesheet_quast = assembly_ch.map { meta, filePath ->
+        [[id: meta.id], filePath]
+    }.groupTuple()
 
+    // Define optional fasta and gff channels, checking if files are provided
+    ch_fasta = file(params.quast_refseq)
+    ch_gff   = file(params.quast_features)
+
+    quast_ch = QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
+
+    quast_ch.results.view()
 
     emit:
     assembly_ch

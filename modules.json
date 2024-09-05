@@ -29,6 +29,11 @@
                         "branch": "master",
                         "git_sha": "a998731f3170388c8db868dc942ade0ad6c80fdf",
                         "installed_by": ["modules"]
+                    },
+                    "quast": {
+                        "branch": "master",
+                        "git_sha": "3f5420aa22e00bd030a2556dfdffc9e164ec0ec5",
+                        "installed_by": ["modules"]
                     }
                 }
             },
