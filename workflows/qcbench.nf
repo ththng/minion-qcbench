@@ -17,7 +17,7 @@ include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pi
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { create_qctool_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-
+include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,25 +43,30 @@ workflow QCBENCH {
     // MODULE: NOQC
     //
     ch_samplesheet_noqc = create_qctool_samplesheet(ch_samplesheet, 'noqc', [0])
-    noqc_ch = NOQC(ch_samplesheet_noqc)
+    NOQC(ch_samplesheet_noqc)
+    ch_noqc = NOQC.out
 
     //
     // MODULE: CHOPPER
     //
     ch_samplesheet_qs_chopper = create_qctool_samplesheet(ch_samplesheet, 'chopper', params.quality_scores)
-    chopper_ch = CHOPPER(ch_samplesheet_qs_chopper)
+    CHOPPER(ch_samplesheet_qs_chopper)
+    ch_chopper_filtered = CHOPPER.out.fastq
+    ch_versions = ch_versions.mix(CHOPPER.out.versions)
 
     //
     // MODULE: PRINSEQ
     //
     ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores)
-    prinseq_ch = PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq).good_reads
+    PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq)
+    ch_prinseq_filtered = PRINSEQPLUSPLUS.out.good_reads
+    ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
 
     //
-    // Concatenate all items emitted by the different QC Tools
+    // Merge all items emitted by the different QC Tools into one channel
     //
-    qc_tools_ch = chopper_ch.fastq
-        .concat(noqc_ch, prinseq_ch)
+    ch_qc_tools = ch_chopper_filtered
+        .mix(ch_noqc, ch_prinseq_filtered)
 
     /*
     ====================================================================================
@@ -71,8 +76,10 @@ workflow QCBENCH {
     //
     // MODULE: FLYE
     //
-    ch_samplesheet_flye = create_flye_samplesheet(qc_tools_ch, params.flye_modes)
-    assembly_ch = FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode).fasta
+    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes)
+    FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode)
+    ch_assembly = FLYE.out.fasta
+    ch_versions = ch_versions.mix(FLYE.out.versions)
 
     /*
     ====================================================================================
@@ -82,20 +89,26 @@ workflow QCBENCH {
     //
     // MODULE: QUAST
     //
-    ch_samplesheet_quast = assembly_ch.map { meta, filePath ->
-        [[id: meta.id], filePath]
-    }.groupTuple()
-
-    // Define optional fasta and gff channels, checking if files are provided
+    ch_samplesheet_quast = create_quast_samplesheet(ch_assembly)
     ch_fasta = file(params.quast_refseq)
     ch_gff   = file(params.quast_features)
+    QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
+    ch_versions = ch_versions.mix(QUAST.out.versions)
 
-    quast_ch = QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
-
-    quast_ch.results.view()
+    //
+    // Collate and save software versions
+    //
+    softwareVersionsToYAML(ch_versions)
+        .collectFile(
+            storeDir: "${params.outdir}/pipeline_info",
+            name: 'minion_qcbench_software_versions.yml',
+            sort: true,
+            newLine: true
+        ).set { ch_collated_versions }
 
     emit:
-    assembly_ch
+    quast_report_dir = QUAST.out.results
+    versions         = ch_versions
 
     /*
     ch_multiqc_files = Channel.empty()

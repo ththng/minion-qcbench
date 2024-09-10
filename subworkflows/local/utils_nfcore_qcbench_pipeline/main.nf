@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the minion/qcbench pipeline
+// Subworkflow with functionality specific to the minion-qcbench pipeline
 //
 
 /*
@@ -241,7 +241,8 @@ def create_qctool_samplesheet(ch_samplesheet, qc_tool, quality_scores) {
 
 //
 // Add information about which Flye mode is used to the meta map
-// If multiple Flye modes are tested, multiple inputs are returned
+// If multiple Flye modes are tested, multiple samplesheets (one for each mode) are created
+// Since Flye has 2 input channels (one for the sample, one for the mode), 2 channels are returned for each samplesheet
 //
 def create_flye_samplesheet(ch_samplesheet, modes) {
     return ch_samplesheet
@@ -255,4 +256,14 @@ def create_flye_samplesheet(ch_samplesheet, modes) {
             samplesheet: [meta, fastq]
             mode: mode_input
         }
+}
+
+//
+// Multiple assemblies are emitted from the previous process Flye, especially if there are multiple initial input samples
+// To create a separate QUAST report for each sample, the assemblies are grouped by the sample id
+//
+def create_quast_samplesheet(ch_samplesheet) {
+    return ch_samplesheet.map { meta, filePath ->
+        [[id: meta.id], filePath]
+    }.groupTuple()
 }

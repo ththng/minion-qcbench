@@ -3,8 +3,6 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     minion/qcbench
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/minion/qcbench
-----------------------------------------------------------------------------------------
 */
 
 nextflow.enable.dsl = 2
@@ -45,7 +43,7 @@ workflow MINION_QCBENCH {
     //QCBENCH.out.view()
 
     emit:
-    QCBENCH.out // channel: /path/to/multiqc_report.html
+    QCBENCH.out.quast_report_dir // channel: /path/to/quast_report_directory
 
 }
 /*
