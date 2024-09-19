@@ -1,0 +1,28 @@
+name: "copyfastq"
+description: Copies compressed FastQ files
+
+tools:
+  - "cp":
+      description: "cp copies files or directories from one location to another."
+      documentation: "https://linux.die.net/man/1/cp"
+      args_id: "$args"
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - fastq:
+      type: file
+      description: FastQ file
+      pattern: "*.{fastq.gz}"
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - fastq:
+      type: file
+      description: Input FastQ file copied into a new file
+      pattern: "*.{fastq.gz}"

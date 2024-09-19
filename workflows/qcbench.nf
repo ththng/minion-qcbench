@@ -6,7 +6,7 @@
 
 include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
-include { NOQC                   } from '../modules/local/noqc/main'
+include { COPYFASTQ              } from '../modules/local/copyfastq/main'
 include { CHOPPER                } from '../modules/nf-core/chopper/main'
 include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
 include { FLYE                   } from '../modules/nf-core/flye/main'
@@ -39,17 +39,19 @@ workflow QCBENCH {
         QC TOOLS
     ====================================================================================
     */
+    params.quality_scores_list = params.quality_scores?.split(',') as List
+
     //
-    // MODULE: NOQC
+    // MODULE: COPYFASTQ
     //
-    ch_samplesheet_noqc = create_qctool_samplesheet(ch_samplesheet, 'noqc', [0])
-    NOQC(ch_samplesheet_noqc)
-    ch_noqc = NOQC.out
+    ch_samplesheet_copyfastq = create_qctool_samplesheet(ch_samplesheet, 'copyfastq', [0])
+    COPYFASTQ(ch_samplesheet_copyfastq)
+    ch_copyfastq = COPYFASTQ.out.fastq
 
     //
     // MODULE: CHOPPER
     //
-    ch_samplesheet_qs_chopper = create_qctool_samplesheet(ch_samplesheet, 'chopper', params.quality_scores)
+    ch_samplesheet_qs_chopper = create_qctool_samplesheet(ch_samplesheet, 'chopper', params.quality_scores_list)
     CHOPPER(ch_samplesheet_qs_chopper)
     ch_chopper_filtered = CHOPPER.out.fastq
     ch_versions = ch_versions.mix(CHOPPER.out.versions)
@@ -57,7 +59,7 @@ workflow QCBENCH {
     //
     // MODULE: PRINSEQ
     //
-    ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores)
+    ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores_list)
     PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq)
     ch_prinseq_filtered = PRINSEQPLUSPLUS.out.good_reads
     ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
@@ -66,17 +68,19 @@ workflow QCBENCH {
     // Merge all items emitted by the different QC Tools into one channel
     //
     ch_qc_tools = ch_chopper_filtered
-        .mix(ch_noqc, ch_prinseq_filtered)
+        .mix(ch_copyfastq, ch_prinseq_filtered)
 
     /*
     ====================================================================================
         ASSEMBLY
     ====================================================================================
     */
+    params.flye_modes_list = params.flye_modes?.split(',') as List
+
     //
     // MODULE: FLYE
     //
-    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes)
+    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes_list)
     FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode)
     ch_assembly = FLYE.out.fasta
     ch_versions = ch_versions.mix(FLYE.out.versions)
@@ -90,8 +94,8 @@ workflow QCBENCH {
     // MODULE: QUAST
     //
     ch_samplesheet_quast = create_quast_samplesheet(ch_assembly)
-    ch_fasta = file(params.quast_refseq)
-    ch_gff   = file(params.quast_features)
+    ch_fasta = params.quast_refseq ? file(params.quast_refseq) : []
+    ch_gff = params.quast_features ? file(params.quast_features) : []
     QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
     ch_versions = ch_versions.mix(QUAST.out.versions)
 
