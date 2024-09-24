@@ -1,0 +1,22 @@
+nextflow_pipeline {
+
+    name "Test Workflow main.nf"
+    script "main.nf"
+
+    test("Should run without failures") {
+
+        when {}
+
+        then {
+            assert workflow.success
+            // Check that the output directory for sample1 exists
+            assert workflow.stdout.findAll { it.contains("sample1") }.size() == 1
+            // Check that the output directory for sample2 exists
+            assert workflow.stdout.findAll { it.contains("sample2") }.size() == 1
+            // Check that stderr is empty
+            assert workflow.stderr.isEmpty()
+        }
+
+    }
+
+}

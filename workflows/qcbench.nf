@@ -98,6 +98,7 @@ workflow QCBENCH {
     ch_gff = params.quast_features ? file(params.quast_features) : []
     QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
     ch_versions = ch_versions.mix(QUAST.out.versions)
+    //QUAST.out.results.map { it[0] }.view()
 
     //
     // Collate and save software versions

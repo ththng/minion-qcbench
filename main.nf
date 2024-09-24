@@ -43,7 +43,7 @@ workflow MINION_QCBENCH {
     //QCBENCH.out.view()
 
     emit:
-    QCBENCH.out.quast_report_dir // channel: /path/to/quast_report_directory
+    quast_report = QCBENCH.out.quast_report_dir // channel: /path/to/quast_report_directory
 
 }
 /*
@@ -75,6 +75,9 @@ workflow {
     MINION_QCBENCH (
         PIPELINE_INITIALISATION.out.samplesheet
     )
+
+    //MINION_QCBENCH.out.quast_report.map { it[1] }.view { path -> "The quast reports are stored in $path ." }
+    MINION_QCBENCH.out.quast_report.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
 
     //
     // SUBWORKFLOW: Run completion tasks

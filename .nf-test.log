@@ -1,0 +1,46 @@
+Sep-22 22:47:27.279 [main] INFO  com.askimed.nf.test.App - nf-test 0.9.0
+Sep-22 22:47:27.289 [main] INFO  com.askimed.nf.test.App - Arguments: [test, tests/main.nf.test, --debug]
+Sep-22 22:47:27.952 [main] INFO  com.askimed.nf.test.App - Nextflow Version: 24.04.4
+Sep-22 22:47:27.953 [main] INFO  com.askimed.nf.test.commands.RunTestsCommand - Load config from file /Users/thao/Desktop/projects/minion-qcbench/nf-test.config...
+Sep-22 22:47:28.203 [main] INFO  com.askimed.nf.test.lang.dependencies.DependencyResolver - Loaded 34 files from directory /Users/thao/Desktop/projects/minion-qcbench in 0.037 sec
+Sep-22 22:47:28.204 [main] INFO  com.askimed.nf.test.lang.dependencies.DependencyResolver - Found 1 tests.
+Sep-22 22:47:28.204 [main] DEBUG com.askimed.nf.test.lang.dependencies.DependencyResolver - Found tests: [/Users/thao/Desktop/projects/minion-qcbench/tests/main.nf.test]
+Sep-22 22:47:28.204 [main] INFO  com.askimed.nf.test.commands.RunTestsCommand - Detected 1 test files.
+Sep-22 22:47:28.259 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Started test plan
+Sep-22 22:47:28.259 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Running testsuite 'Test Workflow main.nf' from file '/Users/thao/Desktop/projects/minion-qcbench/tests/main.nf.test'.
+Sep-22 22:47:28.259 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Run test 'a83ab087: Should run without failures'. type: com.askimed.nf.test.lang.pipeline.PipelineTest
+Sep-22 22:47:33.294 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Test 'a83ab087: Should run without failures' finished. status: FAILED
+org.codehaus.groovy.runtime.powerassert.PowerAssertionError: assert workflow.success
+       |        |
+       workflow false
+	at org.codehaus.groovy.runtime.InvokerHelper.assertFailed(InvokerHelper.java:432)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.assertFailed(ScriptBytecodeAdapter.java:670)
+	at main_nf$_run_closure1$_closure2$_closure4.doCall(main.nf.test:11)
+	at main_nf$_run_closure1$_closure2$_closure4.doCall(main.nf.test)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:107)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:274)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1030)
+	at groovy.lang.Closure.call(Closure.java:427)
+	at groovy.lang.Closure.call(Closure.java:406)
+	at com.askimed.nf.test.lang.TestCode.execute(TestCode.java:16)
+	at com.askimed.nf.test.lang.pipeline.PipelineTest.execute(PipelineTest.java:135)
+	at com.askimed.nf.test.core.TestExecutionEngine.execute(TestExecutionEngine.java:165)
+	at com.askimed.nf.test.commands.RunTestsCommand.execute(RunTestsCommand.java:299)
+	at com.askimed.nf.test.commands.AbstractCommand.call(AbstractCommand.java:43)
+	at com.askimed.nf.test.commands.AbstractCommand.call(AbstractCommand.java:18)
+	at picocli.CommandLine.executeUserObject(CommandLine.java:1953)
+	at picocli.CommandLine.access$1300(CommandLine.java:145)
+	at picocli.CommandLine$RunLast.executeUserObjectOfLastSubcommandWithSameParent(CommandLine.java:2352)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2346)
+	at picocli.CommandLine$RunLast.handle(CommandLine.java:2311)
+	at picocli.CommandLine$AbstractParseResultHandler.execute(CommandLine.java:2179)
+	at picocli.CommandLine.execute(CommandLine.java:2078)
+	at com.askimed.nf.test.App.run(App.java:39)
+	at com.askimed.nf.test.App.main(App.java:46)
+Sep-22 22:47:33.297 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Testsuite 'Test Workflow main.nf' finished. snapshot file: false, skipped tests: false, failed tests: true
+Sep-22 22:47:33.297 [main] INFO  com.askimed.nf.test.core.TestExecutionEngine - Executed 1 tests. 1 tests failed. Done!
