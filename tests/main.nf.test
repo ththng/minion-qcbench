@@ -3,16 +3,32 @@ nextflow_pipeline {
     name "Test Workflow main.nf"
     script "main.nf"
 
-    test("Should run without failures") {
-
-        when {}
+    test("Should produce quast reports for each sample") {
 
         then {
             assert workflow.success
-            // Check that the output directory for sample1 exists
-            assert workflow.stdout.findAll { it.contains("sample1") }.size() == 1
-            // Check that the output directory for sample2 exists
-            assert workflow.stdout.findAll { it.contains("sample2") }.size() == 1
+
+            def outputSample1 = workflow.stdout.findAll { it.contains("sample1") }
+            def outputSample2 = workflow.stdout.findAll { it.contains("sample2") }
+
+            // Check that the quast directory for sample1 was printed to stdout
+            assert outputSample1.size() == 1
+            // Check that the quast directory for sample2 was printed to stdout
+            assert outputSample2.size() == 1
+
+            def pathSample1 = outputSample1[0].split(" ")[-1].trim()
+            if (pathSample1.endsWith(".")) {
+                pathSample1 = pathSample1.substring(0, pathSample1.length() - 1)
+            }
+            def pathSample2 = outputSample2[0].split(" ")[-1].trim()
+            if (pathSample2.endsWith(".")) {
+                pathSample2 = pathSample2.substring(0, pathSample2.length() - 1)
+            }
+            // Check that the quast directory for sample1 exists
+            assert path("$pathSample1/report.txt").readLines().size() == 25
+            // Check that the quast directory for sample2 exists
+            assert path(pathSample2).exists()
+
             // Check that stderr is empty
             assert workflow.stderr.isEmpty()
         }
