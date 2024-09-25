@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the minion/qcbench pipeline
+// Subworkflow with functionality specific to the minion-qcbench pipeline
 //
 
 /*
@@ -225,4 +225,45 @@ def methodsDescriptionText(mqc_methods_yaml) {
     def description_html = engine.createTemplate(methods_text).make(meta)
 
     return description_html.toString()
+}
+
+//
+// Add information about which QC tool is used and which min mean quality score is set as threshold to the meta map
+// If multiple quality thresholds are tested for one tool, multiple samplesheets are returned (one for each quality threshold)
+//
+def create_qctool_samplesheet(ch_samplesheet, qc_tool, quality_scores) {
+    return ch_samplesheet.flatMap { meta, filePath ->
+        quality_scores.collect { quality ->
+            [[id: meta.id, single_end: meta.single_end, quality: quality, qc: qc_tool], filePath]
+        }
+    }
+}
+
+//
+// Add information about which Flye mode is used to the meta map
+// If multiple Flye modes are tested, multiple samplesheets (one for each mode) are created
+// Since Flye has 2 input channels (one for the sample, one for the mode), 2 channels are returned for each samplesheet
+//
+def create_flye_samplesheet(ch_samplesheet, modes) {
+    return ch_samplesheet
+        .flatMap { meta, filePath ->
+            modes.collect { mode ->
+                [[id: meta.id, single_end: meta.single_end, quality: meta.quality, qc: meta.qc, mode: mode], filePath]
+            }
+        } 
+        .multiMap { meta, fastq ->
+            def mode_input = "--" + meta.mode
+            samplesheet: [meta, fastq]
+            mode: mode_input
+        }
+}
+
+//
+// Multiple assemblies are emitted from the previous process Flye, especially if there are multiple initial input samples
+// To create a separate QUAST report for each sample, the assemblies are grouped by the sample id
+//
+def create_quast_samplesheet(ch_samplesheet) {
+    return ch_samplesheet.map { meta, filePath ->
+        [[id: meta.id], filePath]
+    }.groupTuple()
 }
