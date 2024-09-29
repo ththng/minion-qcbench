@@ -238,11 +238,13 @@
     "properties": {
         "quality_scores": {
             "type": "string",
-            "description": "minimum Phred average quality scores by which the qc tools filter, separated by comma"
+            "description": "minimum Phred average quality scores by which the qc tools filter, separated by comma",
+            "pattern": "^\\d+(,\\d+)*$"
         },
         "flye_modes": {
             "type": "string",
-            "description": "flye modes used for assembly, representing the underlying sequencing technology, separated by comma (supported options: pacbio-raw, pacbio-corr, pacbio-hifi, nano-raw, nano-corr, nano-hq)"
+            "description": "flye modes used for assembly, representing the underlying sequencing technology, separated by comma (supported options: pacbio-raw, pacbio-corr, pacbio-hifi, nano-raw, nano-corr, nano-hq)",
+            "pattern": "^(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq)(,\\s*(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq))*$"
         },
         "flye_genome_size": {
             "type": "string",

@@ -1,0 +1,34 @@
+nextflow_process {
+
+    name "Test Process COPYFASTQ"
+    script "../main.nf"
+    process "COPYFASTQ"
+
+    test("Should copy the file correctly") {
+
+        when {
+            params {
+                outdir = "results"
+            }
+            process {
+                """
+                input[0] = [ [id: 'testsample' ], file("${projectDir}/tests/data/test.fastq.gz") ]
+                """
+            }
+        }
+
+        then {
+            assert process.success
+
+            // Check if the output file has the correct name
+            assert file(process.out.fastq[0][1]).name == "testsample_noqc.fastq.gz"
+
+            // Check if the input and output file have the same md5sum
+            assert path(process.out.fastq[0][1]).md5 == path("${projectDir}/tests/data/test.fastq.gz").md5
+
+            assert snapshot(process.out).match()
+        }
+
+    }
+
+}

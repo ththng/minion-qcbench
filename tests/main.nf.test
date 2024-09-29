@@ -1,0 +1,132 @@
+nextflow_pipeline {
+
+    name "Test Workflow main.nf"
+    script "main.nf"
+
+    test("Should produce quast reports for each sample") {
+
+        when {
+            params {
+                input = "${projectDir}/tests/data/test_samplesheet.csv"
+                flye_modes = "nano-corr,nano-hq"
+                quality_scores = "13,15"
+                outdir = "results"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def assemblyNames = [
+                "chopper_13_nano-corr.assembly",
+                "copyfastq_0_nano-corr.assembly",
+                "copyfastq_0_nano-hq.assembly",
+                "chopper_13_nano-hq.assembly",
+                "prinseq_15_nano-corr.assembly",
+                "prinseq_15_nano-hq.assembly",
+                "prinseq_13_nano-hq.assembly",
+                "chopper_15_nano-hq.assembly",
+                "chopper_15_nano-corr.assembly",
+                "prinseq_13_nano-corr.assembly"
+            ]
+
+            def checkSample = { sampleName ->
+                // Check that the stdout contains the path to the quast report
+                def output = workflow.stdout.findAll { it.contains(sampleName) }
+                assert output.size() == 1
+                
+                // Path to quast report
+                def path = output[0].split(" ")[-1].trim()
+                if (path.endsWith(".")) {
+                    path = path.substring(0, path.length() - 1)
+                }
+
+                // Check that the quast report exists
+                def reportFile = new File("$path/report.txt")
+                assert reportFile.exists()
+                
+                // Check that the quast report contains the expected content
+                def reportLines = reportFile.readLines()
+                assert reportLines.size() == 25
+                assemblyNames.each { assemblyName ->
+                    assert reportLines[2].contains("${sampleName}_${assemblyName}")
+                }
+            }
+
+            // Check quast reports for each sample
+            checkSample("sample1")
+            checkSample("sample2")
+
+            // Check that stderr is empty
+            assert workflow.stderr.isEmpty()
+        }
+
+    }
+
+    test("Should throw an error if a required parameter is missing") {
+
+        when {
+            params {
+                input = "${projectDir}/tests/data/test_samplesheet.csv"
+                quality_scores = "13,15"
+                outdir = "results"
+                // missing param: flye_modes
+            }
+        }
+
+        then {
+            assert !workflow.success
+
+            // Check that stderr contains the expected error message
+            assert workflow.stderr.findAll { it.contains("Missing required parameter") && it.contains("flye_modes") }.size() > 0
+        }
+
+    }
+
+    test("Should throw an error if the input file does not exist") {
+
+        when {
+            params {
+                input = "${projectDir}/tests/data/nonexistent_samplesheet.csv"
+                flye_modes = "nano-corr,nano-hq"
+                quality_scores = "13,15"
+                outdir = "results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+
+            // Check that stdout contains the expected error message
+            assert workflow.stdout.find { it.contains("ERROR: Validation of pipeline parameters failed") }
+
+            // Check that stderr contains the expected error message
+            assert workflow.stderr.findAll { it.contains("the file or directory") && it.contains("does not exist") && it.contains("${projectDir}/tests/data/nonexistent_samplesheet.csv") }.size() > 0
+        }
+
+    }
+
+    test("Should throw an error if the parameters don't match the pattern") {
+
+        when {
+            params {
+                input = "${projectDir}/tests/data/nonexistent_samplesheet.csv"
+                flye_modes = "nano-corr,nano-hq"
+                quality_scores = "13,15a" // invalid quality score
+                outdir = "results"
+            }
+        }
+
+        then {
+            assert !workflow.success
+
+            // Check that stdout contains the expected error message
+            assert workflow.stdout.find { it.contains("ERROR: Validation of pipeline parameters failed") }
+
+            // Check that stderr contains the expected error message
+            assert workflow.stderr.findAll { it.contains("does not match pattern") }.size() > 0
+        }
+
+    }
+
+}

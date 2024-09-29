@@ -99,6 +99,9 @@ workflow QCBENCH {
     QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
     ch_versions = ch_versions.mix(QUAST.out.versions)
 
+    // Print the Quast report directory to stdout
+    QUAST.out.results.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
+
     //
     // Collate and save software versions
     //
