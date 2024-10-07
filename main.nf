@@ -40,8 +40,6 @@ workflow MINION_QCBENCH {
         samplesheet
     )
 
-    //QCBENCH.out.view()
-
     emit:
     QCBENCH.out.quast_report_dir // channel: /path/to/quast_report_directory
 
@@ -76,17 +74,15 @@ workflow {
         PIPELINE_INITIALISATION.out.samplesheet
     )
 
+    // Print the Quast report directory to stdout
+    MINION_QCBENCH.out.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
+
     //
     // SUBWORKFLOW: Run completion tasks
     //
     PIPELINE_COMPLETION (
-        params.email,
-        params.email_on_fail,
-        params.plaintext_email,
         params.outdir,
         params.monochrome_logs,
-        params.hook_url,
-        MINION_QCBENCH.out
     )
 }
 

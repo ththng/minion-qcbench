@@ -10,7 +10,9 @@ include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main
 include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { create_qctool_samplesheet, create_flye_samplesheet, create_quast_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { create_qctool_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,9 +93,6 @@ workflow QCBENCH {
     ch_gff = params.quast_features ? file(params.quast_features) : []
     QUAST(ch_samplesheet_quast, ['', ch_fasta], ['', ch_gff])
     ch_versions = ch_versions.mix(QUAST.out.versions)
-
-    // Print the Quast report directory to stdout
-    QUAST.out.results.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
 
     //
     // Collate and save software versions
