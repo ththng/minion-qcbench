@@ -5,7 +5,7 @@ results/
 testing/
 testing*
 *.pyc
-data/
+/data/
 .vscode
 .nf-test
 .nf-test.log
