@@ -30,7 +30,7 @@ nextflow_pipeline {
                 "prinseq_13_nano-corr.assembly"
             ]
 
-            def checkSample = { sampleName ->
+            def checkSample = { sampleName, subsampling ->
                 // Check that the stdout contains the path to the quast report
                 def output = workflow.stdout.findAll { it.contains(sampleName) }
                 assert output.size() == 1
@@ -49,13 +49,18 @@ nextflow_pipeline {
                 def reportLines = reportFile.readLines()
                 assert reportLines.size() == 25
                 assemblyNames.each { assemblyName ->
-                    assert reportLines[2].contains("${sampleName}_${assemblyName}")
+                    if (subsampling) {
+                        assert reportLines[2].contains("${sampleName}_${subsampling}_${assemblyName}")
+                    } else {
+                        assert reportLines[2].contains("${sampleName}_${assemblyName}")
+                    }
                 }
             }
 
             // Check quast reports for each sample
-            checkSample("sample1")
-            checkSample("sample2")
+            checkSample("sample1", null)
+            checkSample("sample1", 50)
+            checkSample("sample2", null)
 
             // Check that stderr is empty
             assert workflow.stderr.isEmpty()
