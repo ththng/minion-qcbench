@@ -76,12 +76,8 @@ workflow PIPELINE_INITIALISATION {
     Channel
         .fromSamplesheet("input")
         .map {
-            meta, fastq_1, fastq_2 ->
-                if (fastq_2) {
-                    // Raise an error if paired-end data is detected
-                    error("Paired-end data is not allowed. Please check the input samplesheet for sample: ${meta.id}")
-                }
-                return [ meta + [ single_end:true ], [ fastq_1 ] ]
+            meta, fastq ->
+                return [ meta + [ single_end:true ], [ fastq ] ]
         }
         .set { ch_samplesheet }
 
