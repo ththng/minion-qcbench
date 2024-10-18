@@ -1,4 +1,0 @@
-sample,fastq,subsampling
-sample1,/path/to/fastq/file/sample1.fastq.gz,
-sample1,/path/to/fastq/file/sample1_50.fastq.gz,50
-sample2,/path/to/fastq/files/sample2.fastq.gz,

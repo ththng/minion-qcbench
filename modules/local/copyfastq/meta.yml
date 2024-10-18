@@ -1,5 +1,5 @@
 name: "copyfastq"
-description: Copies compressed FastQ files
+description: Copies compressed FASTQ files
 
 tools:
   - "cp":
@@ -14,7 +14,7 @@ input:
         e.g. [ id:'test', single_end:false ]
   - fastq:
       type: file
-      description: FastQ file
+      description: FASTQ file
       pattern: "*.{fastq.gz}"
 output:
   - meta:
@@ -24,5 +24,5 @@ output:
         e.g. [ id:'test', single_end:false ]
   - fastq:
       type: file
-      description: Input FastQ file copied into a new file
+      description: Input FASTQ file copied into a new file
       pattern: "*.{fastq.gz}"
