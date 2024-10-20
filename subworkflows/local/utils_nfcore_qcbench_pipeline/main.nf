@@ -122,10 +122,10 @@ workflow PIPELINE_COMPLETION {
 // Add information to the meta map about which QC tool is used and which min mean quality score is set as threshold
 // If multiple quality thresholds are tested for one tool, multiple samplesheets are returned (one for each quality threshold)
 //
-def create_qctool_samplesheet(ch_samplesheet, qc_tool, quality_scores) {
+def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_args) {
     return ch_samplesheet.flatMap { meta, filePath ->
-        quality_scores.collect { quality ->
-            [meta + [quality: quality, qc: qc_tool], filePath]
+        qc_args.collect { qc_arg ->
+            [meta + [qc_arg: qc_arg, qc: qc_tool], filePath]
         }
     }
 }

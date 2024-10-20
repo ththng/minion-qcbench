@@ -52,7 +52,7 @@ workflow QCBENCH {
     ch_versions = ch_versions.mix(CHOPPER.out.versions)
 
     //
-    // MODULE: PRINSEQ
+    // MODULE: PRINSEQ++
     //
     ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores_list)
     PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq)
@@ -60,7 +60,7 @@ workflow QCBENCH {
     ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
 
     //
-    // Merge all items emitted by the different QC Tools into one channel
+    // Merge all items emitted by the different QC tools into one channel
     //
     ch_qc_tools = ch_chopper_filtered
         .mix(ch_copyfastq, ch_prinseq_filtered)
