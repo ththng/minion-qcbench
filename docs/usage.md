@@ -28,7 +28,7 @@ The samplesheet can have as many columns as you desire, however, there is a stri
 | Column    | Description                                                                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sample`  | Custom sample name. |
-| `fastq` | Full path to FastQ file for long-read sequencing data, which is relative to the samplesheet. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| `fastq` | Full path to FastQ file for long-read sequencing data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
 | `subsampling` | Subsampling rate.                                                             |
 
 **Example `samplesheet.csv`**
@@ -41,8 +41,6 @@ sample2,sample2.fastq.gz,
 ```
 
 The first row represents a sample named `sample1`, which was not subsampled, so the last value is omitted. The second row corresponds to the same sample, subsampled at 80%. The third row refers to a different sample, `sample2`, which was also not subsampled.
-
-In this example, the FASTQ files are located in the same directory as the samplesheet, so the file paths are simply the filenames without any additional path information.
 
 <!-- TODO: subsampling ??? path to sample ???
 -->
