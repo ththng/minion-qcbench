@@ -1,4 +1,4 @@
-# minion/qcbench: Citations
+# minion-qcbench: Citations
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
@@ -10,6 +10,18 @@
 
 ## Pipeline tools
 
+## [Chopper](https://academic.oup.com/bioinformatics/article/39/5/btad311/7160911)
+> Wouter De Coster, Rosa Rademakers, NanoPack2: population-scale evaluation of long-read sequencing data, Bioinformatics, Volume 39, Issue 5, May 2023, btad311, https://doi.org/10.1093/bioinformatics/btad311
+
+## [PRINSEQ++](https://peerj.com/preprints/27553v1/)
+> Cantu VA, Sadural J, Edwards R. 2019. PRINSEQ++, a multi-threaded tool for fast and efficient quality control and preprocessing of sequencing datasets. PeerJ Preprints 7:e27553v1
+
+## [Flye](https://www.nature.com/articles/s41587-019-0072-8)
+> Mikhail Kolmogorov, Jeffrey Yuan, Yu Lin and Pavel Pevzner, "Assembly of Long Error-Prone Reads Using Repeat Graphs", Nature Biotechnology, 2019 doi:10.1038/s41587-019-0072-8
+
+## [QUAST](https://academic.oup.com/bioinformatics/article/34/13/i142/5045727)
+> Alla Mikheenko, Andrey Prjibelski, Vladislav Saveliev, Dmitry Antipov, Alexey Gurevich, Versatile genome assembly evaluation with QUAST-LG, Bioinformatics (2018) 34 (13): i142-i150. doi: 10.1093/bioinformatics/bty266\
+First published online: June 27, 2018
 
 ## Software packaging/containerisation tools
 
