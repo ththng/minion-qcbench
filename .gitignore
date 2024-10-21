@@ -6,6 +6,5 @@ testing/
 testing*
 *.pyc
 /data/
-.vscode
 .nf-test
 .nf-test.log
