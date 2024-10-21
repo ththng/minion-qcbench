@@ -1,15 +1,22 @@
 # minion-qcbench: Usage
-<!-- TODO: Add the software requirements! -->
-
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow.
+> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Furthermore we have used [nf-test](https://www.nf-test.com) to write pipeline tests and [Apptainer](https://apptainer.org) as container system.
 
 ## Pipeline Validation: Running Tests
 Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
 
-<!-- TODO: setup profile test! -->
-Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+Make sure to test your setup with `-profile test` before running the workflow on actual data. The `test` profile runs a minimal test, using a small dataset to quickly verify that the pipeline is working as expected with your setup. After navigating to the **parent** directory of the `minion-qcbench` project, run the following command:
 
-...TODO...
+```bash
+nextflow run minion-qcbench -profile test,<docker/singularity>
+```
+
+### nf-test
+In addition to the minimal test provided by the nf-core `-profile test`, more detailed end-to-end pipeline tests are included. These tests are written using the [`nf-test`](https://www.nf-test.com) framework.
+
+To run these tests, navigate to the project folder `minion-qcbench` and run:
+```bash
+nf-test test tests/main.nf.test --profile singularity
+```
 
 ## Samplesheet input
 
@@ -145,6 +152,7 @@ You can also supply a run name to resume a specific run: `-resume [run-name]`. U
 
 Specify the path to a specific config file (this is a core Nextflow command). See the [nf-core website documentation](https://nf-co.re/usage/configuration) for more information.
 
+<!-- TODO: notwendig oder löschen? -->
 ## Custom configuration
 
 ### Resource requests

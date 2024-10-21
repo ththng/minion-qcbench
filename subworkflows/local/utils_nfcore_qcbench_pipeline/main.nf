@@ -53,7 +53,7 @@ workflow PIPELINE_INITIALISATION {
     //
     pre_help_text = workflowHeader(monochrome_logs)
     post_help_text = '\n'
-    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR>"
+    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR> --quality_scores <SCORE1,SCORE2,...> --flye_modes <FLYE_MODE1,FLYE_MODE2,...>"
     UTILS_NFVALIDATION_PLUGIN (
         help,
         workflow_command,
