@@ -1,4 +1,4 @@
 sample,fastq,subsampling
-sample1,../../../tests/data/sample1.fastq.gz,
-sample1,../../../tests/data/sample1.fastq.gz,50
-sample2,../../../tests/data/sample2.fastq.gz,
+sample1,../../../data/test-datasets/sample1.fastq.gz,
+sample1,../../../data/test-datasets/sample1.fastq.gz,50
+sample2,../../../data/test-datasets/sample2.fastq.gz,
