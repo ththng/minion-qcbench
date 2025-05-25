@@ -8,9 +8,9 @@
 ========================================================================================
 */
 
-include { paramsHelp         } from 'plugin/nf-validation'
-include { paramsSummaryLog   } from 'plugin/nf-validation'
-include { validateParameters } from 'plugin/nf-validation'
+include { paramsHelp         } from 'plugin/nf-schema'
+include { paramsSummaryLog   } from 'plugin/nf-schema'
+include { validateParameters } from 'plugin/nf-schema'
 
 /*
 ========================================================================================
@@ -36,14 +36,6 @@ workflow UTILS_NFVALIDATION_PLUGIN {
     pre_help_text    = pre_help_text    ?: ''
     post_help_text   = post_help_text   ?: ''
     workflow_command = workflow_command ?: ''
-
-    //
-    // Print help message if needed
-    //
-    if (print_help) {
-        log.info pre_help_text + paramsHelp(workflow_command, parameters_schema: schema_filename) + post_help_text
-        System.exit(0)
-    }
 
     //
     // Print parameter summary to stdout
