@@ -43,9 +43,9 @@ fi
 # Backup original file
 cp "$UTILS_FILE" "$BACKUP_FILE"
 
-# Extract enabled tools and generate imports and function map
+# Extract enabled tools and generate imports and switch cases
 IMPORTS=""
-FUNCTION_MAP=""
+SWITCH_CASES=""
 ENABLED_TOOLS=()
 
 # Get all enabled tools
@@ -59,14 +59,22 @@ while IFS= read -r tool_name; do
 
         if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
             IMPORTS="${IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
-            FUNCTION_MAP="${FUNCTION_MAP}        '${MODULE_NAME}': { ch -> ${MODULE_NAME}(ch) },\n"
+
+            # Generate switch case for this module
+            SWITCH_CASES="${SWITCH_CASES}        case '${MODULE_NAME}':\n"
+            SWITCH_CASES="${SWITCH_CASES}            ${MODULE_NAME}(ch_samplesheet)\n"
+            SWITCH_CASES="${SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
+            SWITCH_CASES="${SWITCH_CASES}            if (${MODULE_NAME}.out.versions) {\n"
+            SWITCH_CASES="${SWITCH_CASES}                ch_versions = ch_versions.mix(${MODULE_NAME}.out.versions)\n"
+            SWITCH_CASES="${SWITCH_CASES}            }\n"
+            SWITCH_CASES="${SWITCH_CASES}            break\n"
         fi
     fi
 done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
 
-# Remove trailing comma and newline (cross-platform compatible)
-FUNCTION_MAP=$(printf "%s" "$FUNCTION_MAP" | sed '$ s/,$//')
+# Remove trailing newline (cross-platform compatible)
 IMPORTS=$(printf "%s" "$IMPORTS")
+SWITCH_CASES=$(printf "%s" "$SWITCH_CASES")
 
 echo -e "${GREEN}Found ${#ENABLED_TOOLS[@]} enabled QC tools:${NC}"
 for tool in "${ENABLED_TOOLS[@]}"; do
@@ -79,7 +87,7 @@ echo -e "\n${YELLOW}Updating utils file with dynamic imports...${NC}"
 # Create a temporary file
 TEMP_FILE=$(mktemp)
 
-# Read the utils file and replace both imports and function map sections
+# Read the utils file and replace imports and switch cases sections
 while IFS= read -r line; do
     if [[ "$line" == *"// QC Tool imports"* ]]; then
         echo "$line" >> "$TEMP_FILE"
@@ -91,14 +99,12 @@ while IFS= read -r line; do
                 break
             fi
         done
-    elif [[ "$line" == *"// DYNAMIC_FUNCTIONS_START"* ]]; then
+    elif [[ "$line" == *"// DYNAMIC_SWITCH_CASES_START"* ]]; then
         echo "$line" >> "$TEMP_FILE"
-        echo "    def module_functions = [" >> "$TEMP_FILE"
-        echo -e "$FUNCTION_MAP" >> "$TEMP_FILE"
-        echo "    ]" >> "$TEMP_FILE"
+        echo -e "$SWITCH_CASES" >> "$TEMP_FILE"
         # Skip lines until we find the end marker
         while IFS= read -r line; do
-            if [[ "$line" == *"// DYNAMIC_FUNCTIONS_END"* ]]; then
+            if [[ "$line" == *"// DYNAMIC_SWITCH_CASES_END"* ]]; then
                 echo "$line" >> "$TEMP_FILE"
                 break
             fi

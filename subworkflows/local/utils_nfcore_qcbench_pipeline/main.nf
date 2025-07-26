@@ -219,39 +219,38 @@ workflow QC_TOOL_EXECUTOR {
     ch_versions = Channel.empty()
     ch_output = Channel.empty()
 
-    // Module functions map - generated statically by wrapper script
-    // DYNAMIC_FUNCTIONS_START
-    def module_functions = [
-        'COPYFASTQ': { ch -> COPYFASTQ(ch) },
-        'CHOPPER': { ch -> CHOPPER(ch) },
-        'PRINSEQPLUSPLUS': { ch -> PRINSEQPLUSPLUS(ch) },
-    ]
-    // DYNAMIC_FUNCTIONS_END
-
-    // Execute QC tool using function reference
+    // Execute QC tool using switch case
     def module_name = tool_config.module
     def output_channel = tool_config.output_channel
 
-    if (module_functions.containsKey(module_name)) {
-        // Get the function reference and execute it
-        def module_function = module_functions[module_name]
-        def process_result = module_function(ch_samplesheet)
+    switch(module_name) {
+        // DYNAMIC_SWITCH_CASES_START
+        case 'COPYFASTQ':
+            COPYFASTQ(ch_samplesheet)
+            ch_output = COPYFASTQ.out."${output_channel}"
+            break
+        case 'CHOPPER':
+            CHOPPER(ch_samplesheet)
+            ch_output = CHOPPER.out."${output_channel}"
+            if (CHOPPER.out.versions) {
+                ch_versions = ch_versions.mix(CHOPPER.out.versions)
+            }
+            break
+        case 'PRINSEQPLUSPLUS':
+            PRINSEQPLUSPLUS(ch_samplesheet)
+            ch_output = PRINSEQPLUSPLUS.out."${output_channel}"
+            if (PRINSEQPLUSPLUS.out.versions) {
+                ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
+            }
+            break
+        // DYNAMIC_SWITCH_CASES_END
 
-        // Get output channel dynamically
-        ch_output = process_result.out."${output_channel}"
-
-        // Add versions if available (some tools don't emit versions)
-        if (process_result.out.versions) {
-            ch_versions = ch_versions.mix(process_result.out.versions)
-        }
-
-        log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
-    } else {
-        log.error "QC tool '${tool_name}' module '${module_name}' is not available in module_functions map."
-        log.error "Available modules: ${module_functions.keySet()}"
-        log.error "Please ensure the module is imported and added to the function map."
-        error "Unsupported QC tool module: ${module_name}"
+        default:
+            log.error "QC tool '${tool_name}' module '${module_name}' is not implemented in switch statement."
+            error "Unsupported QC tool module: ${module_name}"
     }
+
+    log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
 
     emit:
     output   = ch_output
