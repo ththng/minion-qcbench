@@ -224,7 +224,7 @@ workflow QC_TOOL_EXECUTOR {
     def module_functions = [
         'COPYFASTQ': { ch -> COPYFASTQ(ch) },
         'CHOPPER': { ch -> CHOPPER(ch) },
-        'PRINSEQPLUSPLUS': { ch -> PRINSEQPLUSPLUS(ch) }
+        'PRINSEQPLUSPLUS': { ch -> PRINSEQPLUSPLUS(ch) },
     ]
     // DYNAMIC_FUNCTIONS_END
 
