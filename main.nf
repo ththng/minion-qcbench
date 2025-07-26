@@ -13,7 +13,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { QCBENCH  } from './workflows/qcbench'
+include { QCBENCH  } from './workflows/qcbench_extensible'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_qcbench_pipeline'
 
@@ -66,7 +66,7 @@ workflow {
         params.outdir,
         params.input
     )
-    
+
     //
     // WORKFLOW: Run main workflow
     //
