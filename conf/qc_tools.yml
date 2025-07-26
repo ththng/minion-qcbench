@@ -7,6 +7,7 @@ qc_tools:
   copyfastq:
     enabled: true
     module: "COPYFASTQ"
+    module_path: "../../../modules/local/copyfastq/main"
     output_channel: "fastq"
     parameters:
       - name: "baseline"
@@ -17,6 +18,7 @@ qc_tools:
   chopper:
     enabled: true
     module: "CHOPPER"
+    module_path: "../../../modules/nf-core/chopper/main"
     output_channel: "fastq"
     parameters:
       - name: "quality_scores"
@@ -27,6 +29,7 @@ qc_tools:
   prinseqplusplus:
     enabled: true
     module: "PRINSEQPLUSPLUS"
+    module_path: "../../../modules/nf-core/prinseqplusplus/main"
     output_channel: "good_reads"
     parameters:
       - name: "quality_scores"
@@ -37,6 +40,7 @@ qc_tools:
   filtlong:
     enabled: false
     module: "FILTLONG"
+    module_path: "../../../modules/nf-core/filtlong/main"
     output_channel: "reads"
     parameters:
       - name: "min_length"
@@ -47,6 +51,7 @@ qc_tools:
   nanofilt:
     enabled: false
     module: "NANOFILT"
+    module_path: "../../../modules/nf-core/nanofilt/main"
     output_channel: "fastq"
     parameters:
       - name: "quality_scores"
@@ -57,6 +62,7 @@ qc_tools:
   custom_tool:
     enabled: false
     module: "CUSTOM_TOOL"
+    module_path: "../../../modules/local/custom_tool/main"
     output_channel: "fastq"
     parameters:
       - name: "custom_param"
