@@ -219,16 +219,14 @@ workflow QC_TOOL_EXECUTOR {
     ch_versions = Channel.empty()
     ch_output = Channel.empty()
 
-    // Build module functions map dynamically from configuration
-    def enabled_tools = get_enabled_qc_tools()
-    def module_functions = [:]
-
-    // Dynamically populate function map based on enabled tools
-    enabled_tools.each { tool_name_key, tool_config_item ->
-        def module_name_key = tool_config_item.module
-        // Create closure dynamically using the module name from config
-        module_functions[module_name_key] = { ch -> "${module_name_key}"(ch) }
-    }
+    // Module functions map - generated statically by wrapper script
+    // DYNAMIC_FUNCTIONS_START
+    def module_functions = [
+        'COPYFASTQ': { ch -> COPYFASTQ(ch) },
+        'CHOPPER': { ch -> CHOPPER(ch) },
+        'PRINSEQPLUSPLUS': { ch -> PRINSEQPLUSPLUS(ch) }
+    ]
+    // DYNAMIC_FUNCTIONS_END
 
     // Execute QC tool using function reference
     def module_name = tool_config.module
