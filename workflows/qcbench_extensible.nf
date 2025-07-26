@@ -7,10 +7,7 @@
 include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { COPYFASTQ              } from '../modules/local/copyfastq/main'
-include { CHOPPER                } from '../modules/nf-core/chopper/main'
-include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
-include { load_qc_tools_config; get_enabled_qc_tools; create_qctool_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { load_qc_tools_config; get_enabled_qc_tools; create_qctool_samplesheet; QC_TOOL_EXECUTOR } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
@@ -39,7 +36,7 @@ workflow QCBENCH {
     def enabled_tools = get_enabled_qc_tools()
     def qc_output_channels = []
 
-    // Execute enabled QC tools directly based on configuration
+    // Execute enabled QC tools dynamically based on configuration
     enabled_tools.each { tool_name, tool_config ->
         tool_config.parameters.each { param_config ->
             // Get parameter values directly from configuration
@@ -48,29 +45,11 @@ workflow QCBENCH {
             // Create samplesheet for this tool/parameter combination
             def ch_samplesheet_tool = create_qctool_samplesheet(ch_samplesheet, tool_name, module_args)
 
-            // Execute QC tool directly based on tool name
-            switch(tool_name) {
-                case 'copyfastq':
-                    COPYFASTQ(ch_samplesheet_tool)
-                    qc_output_channels.add(COPYFASTQ.out.fastq)
-                    // COPYFASTQ doesn't emit versions
-                    break
+            // Execute QC tool using generic executor subworkflow
+            QC_TOOL_EXECUTOR(ch_samplesheet_tool, tool_name, tool_config)
 
-                case 'chopper':
-                    CHOPPER(ch_samplesheet_tool)
-                    qc_output_channels.add(CHOPPER.out.fastq)
-                    ch_versions = ch_versions.mix(CHOPPER.out.versions)
-                    break
-
-                case 'prinseqplusplus':
-                    PRINSEQPLUSPLUS(ch_samplesheet_tool)
-                    qc_output_channels.add(PRINSEQPLUSPLUS.out.good_reads)
-                    ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
-                    break
-
-                default:
-                    log.warn "QC tool '${tool_name}' is enabled in configuration but not implemented in workflow. Skipping..."
-            }
+            qc_output_channels.add(QC_TOOL_EXECUTOR.out.output)
+            ch_versions = ch_versions.mix(QC_TOOL_EXECUTOR.out.versions)
         }
     }
 
