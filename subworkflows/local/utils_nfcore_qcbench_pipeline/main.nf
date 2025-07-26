@@ -163,7 +163,7 @@ def get_enabled_qc_tools() {
 def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_args) {
     return ch_samplesheet.flatMap { meta, filePath ->
         qc_args.collect { qc_arg ->
-            [meta + [qc_args: qc_arg, qc_tool: qc_tool], filePath]
+            [meta + [qc_arg: qc_arg, qc: qc_tool], filePath]
         }
     }
 }
