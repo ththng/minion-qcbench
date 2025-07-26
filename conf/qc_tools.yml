@@ -6,8 +6,7 @@ qc_tools:
   # Baseline tool - no filtering (always enabled)
   copyfastq:
     enabled: true
-    module: "COPYFASTQ" # To-Do: necessary? as only module name in capital letters
-    module_path: "../modules/local/copyfastq/main" # To-Do: necessary? always same pattern -> rather variable: local?
+    module: "COPYFASTQ"
     output_channel: "fastq"
     parameters:
       - name: "baseline"
@@ -18,7 +17,6 @@ qc_tools:
   chopper:
     enabled: true
     module: "CHOPPER"
-    module_path: "../modules/nf-core/chopper/main"
     output_channel: "fastq"
     parameters:
       - name: "quality_scores"
@@ -29,7 +27,6 @@ qc_tools:
   prinseqplusplus:
     enabled: true
     module: "PRINSEQPLUSPLUS"
-    module_path: "../modules/nf-core/prinseqplusplus/main"
     output_channel: "good_reads"
     parameters:
       - name: "quality_scores"
@@ -40,7 +37,6 @@ qc_tools:
   filtlong:
     enabled: false
     module: "FILTLONG"
-    module_path: "../modules/nf-core/filtlong/main"
     output_channel: "reads"
     parameters:
       - name: "min_length"
@@ -51,7 +47,6 @@ qc_tools:
   nanofilt:
     enabled: false
     module: "NANOFILT"
-    module_path: "../modules/nf-core/nanofilt/main"
     output_channel: "fastq"
     parameters:
       - name: "quality_scores"
@@ -62,21 +57,8 @@ qc_tools:
   custom_tool:
     enabled: false
     module: "CUSTOM_TOOL"
-    module_path: "../modules/local/custom_tool/main"
     output_channel: "fastq"
     parameters:
       - name: "custom_param"
         values: [10, 20, 30]
         description: "Custom parameter values"
-
-# Global QC configuration
-qc_args:
-  # Default parameter lists (can be overridden by command line)
-  default_quality_scores: [13, 15]
-  default_min_lengths: [1000, 2000, 5000]
-
-  # Output naming pattern
-  output_prefix_pattern: "${meta.id}${meta.subsampling ? '_${meta.subsampling}' : ''}_${meta.qc_tool}_${meta.qc_args}"
-
-  # Channel merge strategy
-  merge_strategy: "mix"  # or "concat"

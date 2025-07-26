@@ -18,9 +18,9 @@ include { workflowHeader            } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
 
 // QC Tool imports
-include { COPYFASTQ              } from '../../modules/local/copyfastq/main'
-include { CHOPPER                } from '../../modules/nf-core/chopper/main'
-include { PRINSEQPLUSPLUS        } from '../../modules/nf-core/prinseqplusplus/main'
+include { COPYFASTQ              } from '../../../modules/local/copyfastq/main'
+include { CHOPPER                } from '../../../modules/nf-core/chopper/main'
+include { PRINSEQPLUSPLUS        } from '../../../modules/nf-core/prinseqplusplus/main'
 // Add more QC tool imports here as needed
 
 /*
@@ -219,31 +219,43 @@ workflow QC_TOOL_EXECUTOR {
     ch_versions = Channel.empty()
     ch_output = Channel.empty()
 
-    // Execute QC tool dynamically using configuration
-    try {
-        // Get module name and output channel from configuration
-        def module_name = tool_config.module
-        def output_channel = tool_config.output_channel
+    // Execute QC tool based on tool name
+    switch(tool_name) {
+        case 'copyfastq':
+            COPYFASTQ(ch_samplesheet)
+            ch_output = COPYFASTQ.out.fastq
+            // COPYFASTQ doesn't emit versions
+            break
 
-        // Execute the module dynamically
-        def process_result = this."${module_name}"(ch_samplesheet)
+        case 'chopper':
+            CHOPPER(ch_samplesheet)
+            ch_output = CHOPPER.out.fastq
+            ch_versions = ch_versions.mix(CHOPPER.out.versions)
+            break
 
-        // Get output channel dynamically
-        ch_output = process_result.out."${output_channel}"
+        case 'prinseqplusplus':
+            PRINSEQPLUSPLUS(ch_samplesheet)
+            ch_output = PRINSEQPLUSPLUS.out.good_reads
+            ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
+            break
 
-        // Add versions if available (some tools don't emit versions)
-        if (process_result.out.versions) {
-            ch_versions = ch_versions.mix(process_result.out.versions)
-        }
+        // Add more tools here as they become available
+        // case 'filtlong':
+        //     FILTLONG(ch_samplesheet)
+        //     ch_output = FILTLONG.out.reads
+        //     ch_versions = ch_versions.mix(FILTLONG.out.versions)
+        //     break
 
-        log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
+        // case 'nanofilt':
+        //     NANOFILT(ch_samplesheet)
+        //     ch_output = NANOFILT.out.fastq
+        //     ch_versions = ch_versions.mix(NANOFILT.out.versions)
+        //     break
 
-    } catch (Exception e) {
-        log.error "Failed to execute QC tool '${tool_name}': ${e.message}"
-        log.error "Module: ${tool_config.module}"
-        log.error "Expected output channel: ${tool_config.output_channel}"
-        log.error "Please check that the module is properly imported and configured"
-        error "QC tool execution failed: ${tool_name}"
+        default:
+            log.error "QC tool '${tool_name}' is not supported in QC_TOOL_EXECUTOR."
+            log.error "Please add the tool to the switch statement in subworkflows/local/utils_nfcore_qcbench_pipeline/main.nf"
+            error "Unsupported QC tool: ${tool_name}"
     }
 
     emit:
