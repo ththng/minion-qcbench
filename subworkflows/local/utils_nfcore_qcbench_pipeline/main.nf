@@ -18,9 +18,9 @@ include { workflowHeader            } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
 
 // QC Tool imports
-include { COPYFASTQ              } from '../../../modules/local/copyfastq/main'
-include { CHOPPER                } from '../../../modules/nf-core/chopper/main'
-include { PRINSEQPLUSPLUS        } from '../../../modules/nf-core/prinseqplusplus/main'
+include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
+include { CHOPPER } from '../../../modules/nf-core/chopper/main'
+include { PRINSEQPLUSPLUS } from '../../../modules/nf-core/prinseqplusplus/main'
 // Add more QC tool imports here as needed
 
 /*
@@ -219,14 +219,25 @@ workflow QC_TOOL_EXECUTOR {
     ch_versions = Channel.empty()
     ch_output = Channel.empty()
 
-    // Execute QC tool dynamically using configuration
-    try {
-        // Get module name and output channel from configuration
-        def module_name = tool_config.module
-        def output_channel = tool_config.output_channel
+    // Build module functions map dynamically from configuration
+    def enabled_tools = get_enabled_qc_tools()
+    def module_functions = [:]
 
-        // Execute the module dynamically
-        def process_result = this."${module_name}"(ch_samplesheet)
+    // Dynamically populate function map based on enabled tools
+    enabled_tools.each { tool_name_key, tool_config_item ->
+        def module_name_key = tool_config_item.module
+        // Create closure dynamically using the module name from config
+        module_functions[module_name_key] = { ch -> "${module_name_key}"(ch) }
+    }
+
+    // Execute QC tool using function reference
+    def module_name = tool_config.module
+    def output_channel = tool_config.output_channel
+
+    if (module_functions.containsKey(module_name)) {
+        // Get the function reference and execute it
+        def module_function = module_functions[module_name]
+        def process_result = module_function(ch_samplesheet)
 
         // Get output channel dynamically
         ch_output = process_result.out."${output_channel}"
@@ -237,13 +248,11 @@ workflow QC_TOOL_EXECUTOR {
         }
 
         log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
-
-    } catch (Exception e) {
-        log.error "Failed to execute QC tool '${tool_name}': ${e.message}"
-        log.error "Module: ${tool_config.module}"
-        log.error "Expected output channel: ${tool_config.output_channel}"
-        log.error "Please check that the module is properly imported and configured"
-        error "QC tool execution failed: ${tool_name}"
+    } else {
+        log.error "QC tool '${tool_name}' module '${module_name}' is not available in module_functions map."
+        log.error "Available modules: ${module_functions.keySet()}"
+        log.error "Please ensure the module is imported and added to the function map."
+        error "Unsupported QC tool module: ${module_name}"
     }
 
     emit:
