@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Dynamic QC Tools Pipeline Wrapper
 # This script reads the QC tools configuration and dynamically generates
 # the necessary module imports in the utils file before running Nextflow.
@@ -24,8 +22,8 @@ if ! command -v yq &> /dev/null; then
 fi
 
 # Configuration
-CONFIG_FILE="conf/qc_tools.yml"
-UTILS_FILE="subworkflows/local/utils_nfcore_qcbench_pipeline/main.nf"
+CONFIG_FILE="minion-qcbench/conf/qc_tools.yml"
+UTILS_FILE="minion-qcbench/subworkflows/local/utils_nfcore_qcbench_pipeline/main.nf"
 BACKUP_FILE="${UTILS_FILE}.backup"
 
 echo -e "${YELLOW}Loading QC tools configuration...${NC}"
