@@ -23,10 +23,24 @@ if ! command -v yq &> /dev/null; then
     exit 1
 fi
 
+# Function to process templates with variable substitution
+process_template() {
+    local template_file="$1"
+    local module_name="$2"
+
+    if [[ ! -f "$template_file" ]]; then
+        echo -e "${RED}Template file not found: $template_file${NC}"
+        exit 1
+    fi
+
+    # Replace {{MODULE_NAME}} with actual module name
+    sed "s/{{MODULE_NAME}}/$module_name/g" "$template_file"
+}
+
 # Configuration
-CONFIG_FILE="minion-qcbench/conf/tools_config.yml"
-QC_HELPER_FILE="minion-qcbench/subworkflows/local/qc_tool_executor_helper/main.nf"
-ASSEMBLER_HELPER_FILE="minion-qcbench/subworkflows/local/assembler_executor_helper/main.nf"
+CONFIG_FILE="conf/tools_config.yml"
+QC_HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
+ASSEMBLER_HELPER_FILE="subworkflows/local/assembler_executor_helper/main.nf"
 QC_BACKUP_FILE="${QC_HELPER_FILE}.backup"
 ASSEMBLER_BACKUP_FILE="${ASSEMBLER_HELPER_FILE}.backup"
 
@@ -70,18 +84,9 @@ while IFS= read -r tool_name; do
         if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
             QC_IMPORTS="${QC_IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
 
-            # Generate switch case for this module
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}        case '${MODULE_NAME}':\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            ${MODULE_NAME}(ch_samplesheet)\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            try {\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}                if (${MODULE_NAME}.out.versions) {\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}                    ch_versions = ch_versions.mix(${MODULE_NAME}.out.versions)\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}                }\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            } catch (Exception e) {\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}                // Module doesn't have versions output - skip\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            }\n"
-            QC_SWITCH_CASES="${QC_SWITCH_CASES}            break\n"
+            # Generate switch case using template
+            QC_SWITCH_CASE=$(process_template "templates/qc_tool_switch_case.template" "$MODULE_NAME")
+            QC_SWITCH_CASES="${QC_SWITCH_CASES}${QC_SWITCH_CASE}\n"
         fi
     fi
 done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
@@ -105,18 +110,9 @@ while IFS= read -r assembler_name; do
         if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
             ASSEMBLER_IMPORTS="${ASSEMBLER_IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
 
-            # Generate switch case for this module
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}        case '${MODULE_NAME}':\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            ${MODULE_NAME}(ch_samplesheet, ch_mode)\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            try {\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}                if (${MODULE_NAME}.out.versions) {\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}                    ch_versions = ch_versions.mix(${MODULE_NAME}.out.versions)\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}                }\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            } catch (Exception e) {\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}                // Module doesn't have versions output - skip\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            }\n"
-            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}            break\n"
+            # Generate switch case using template
+            ASSEMBLER_SWITCH_CASE=$(process_template "templates/assembler_switch_case.template" "$MODULE_NAME")
+            ASSEMBLER_SWITCH_CASES="${ASSEMBLER_SWITCH_CASES}${ASSEMBLER_SWITCH_CASE}\n"
         fi
     fi
 done < <(yq eval '.assemblers | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")

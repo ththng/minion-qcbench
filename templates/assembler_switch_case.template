@@ -1,0 +1,11 @@
+        case '{{MODULE_NAME}}':
+            {{MODULE_NAME}}(ch_samplesheet, ch_mode)
+            ch_output = {{MODULE_NAME}}.out."${output_channel}"
+            try {
+                if ({{MODULE_NAME}}.out.versions) {
+                    ch_versions = ch_versions.mix({{MODULE_NAME}}.out.versions)
+                }
+            } catch (Exception e) {
+                // Module doesn't have versions output - skip
+            }
+            break
