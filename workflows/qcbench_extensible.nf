@@ -4,11 +4,9 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { load_qc_tools_config; get_enabled_qc_tools; create_qctool_samplesheet; QC_TOOL_EXECUTOR } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { load_qc_tools_config; get_enabled_qc_tools; get_enabled_assemblers; create_qctool_samplesheet; create_generic_assembler_samplesheet; QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
@@ -55,7 +53,7 @@ workflow QCBENCH {
 
     // Merge all QC tool outputs into one channel
     if (qc_output_channels.size() == 0) {
-        error "No QC tools are enabled or available. Please check conf/qc_tools.yml"
+        error "No QC tools are enabled or available. Please check conf/tools_config.yml"
     }
 
     ch_qc_tools = qc_output_channels.size() == 1 ?
@@ -64,18 +62,39 @@ workflow QCBENCH {
 
     /*
     ====================================================================================
-        ASSEMBLY
+        EXTENSIBLE ASSEMBLY STAGE
     ====================================================================================
     */
-    params.flye_modes_list = params.flye_modes?.split(',') as List
 
-    //
-    // MODULE: FLYE
-    //
-    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes_list)
-    FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode)
-    ch_assembly = FLYE.out.fasta
-    ch_versions = ch_versions.mix(FLYE.out.versions)
+    // Load assemblers configuration
+    def enabled_assemblers = get_enabled_assemblers()
+    def assembly_output_channels = []
+
+    // Execute enabled assemblers dynamically based on configuration
+    enabled_assemblers.each { assembler_name, assembler_config ->
+        assembler_config.parameters.each { param_config ->
+            // Get parameter values directly from configuration
+            def assembler_args = param_config.values
+
+            // Create mode channel for assembler parameters
+            def ch_assembler_modes = create_generic_assembler_samplesheet(ch_qc_tools, assembler_args)
+
+            // Execute assembler using generic executor subworkflow
+            ASSEMBLER_EXECUTOR(ch_assembler_modes.samplesheet, ch_assembler_modes.mode, assembler_name, assembler_config)
+
+            assembly_output_channels.add(ASSEMBLER_EXECUTOR.out.output)
+            ch_versions = ch_versions.mix(ASSEMBLER_EXECUTOR.out.versions)
+        }
+    }
+
+    // Merge all assembler outputs into one channel
+    if (assembly_output_channels.size() == 0) {
+        error "No assemblers are enabled or available. Please check conf/tools_config.yml"
+    }
+
+    ch_assembly = assembly_output_channels.size() == 1 ?
+        assembly_output_channels[0] :
+        assembly_output_channels[0].mix(*assembly_output_channels.drop(1))
 
     /*
     ====================================================================================

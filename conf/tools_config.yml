@@ -1,5 +1,5 @@
-# QC Tools Configuration
-# This file defines which quality control tools are available and their parameters
+# QC Tools and Assemblers Configuration
+# This file defines which quality control tools and assemblers are available and their parameters
 # Tools can be enabled/disabled and configured without modifying the pipeline code
 
 qc_tools:
@@ -68,3 +68,50 @@ qc_tools:
       - name: "custom_param"
         values: [10, 20, 30]
         description: "Custom parameter values"
+
+# Assemblers Configuration
+# This section defines which assemblers are available and their parameters
+assemblers:
+  # Flye - long-read assembler (enabled by default)
+  flye:
+    enabled: true
+    module: "FLYE"
+    module_path: "../../../modules/nf-core/flye/main"
+    output_channel: "fasta"
+    parameters:
+      - name: "modes"
+        values: ["nano-hq", "nano-corr", "nano-raw"]
+        description: "Flye assembly modes for different read types"
+
+  # Example: Canu - another long-read assembler (disabled by default)
+  canu:
+    enabled: false
+    module: "CANU"
+    module_path: "../../../modules/nf-core/canu/main"
+    output_channel: "assembly"
+    parameters:
+      - name: "genome_size"
+        values: ["5m", "10m"]
+        description: "Expected genome size for assembly"
+
+  # Example: Miniasm - fast long-read assembler (disabled by default)
+  miniasm:
+    enabled: false
+    module: "MINIASM"
+    module_path: "../../../modules/nf-core/miniasm/main"
+    output_channel: "fasta"
+    parameters:
+      - name: "preset"
+        values: ["ava-ont", "ava-pb"]
+        description: "Preset for different sequencing technologies"
+
+  # Example: Raven - de novo genome assembler (disabled by default)
+  raven:
+    enabled: false
+    module: "RAVEN"
+    module_path: "../../../modules/nf-core/raven/main"
+    output_channel: "fasta"
+    parameters:
+      - name: "polishing_rounds"
+        values: [2, 4]
+        description: "Number of polishing rounds"

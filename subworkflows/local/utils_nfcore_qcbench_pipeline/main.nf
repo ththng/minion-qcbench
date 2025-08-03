@@ -20,6 +20,9 @@ include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
 // QC Tool Executor Helper
 include { execute_qc_tool } from '../qc_tool_executor_helper/main'
 
+// Assembler Executor Helper
+include { execute_assembler } from '../assembler_executor_helper/main'
+
 /*
 ========================================================================================
     SUBWORKFLOW TO INITIALISE PIPELINE
@@ -122,12 +125,12 @@ workflow PIPELINE_COMPLETION {
 */
 
 //
-// Load QC tools configuration from YAML file
+// Load tools configuration from YAML file
 //
 def load_qc_tools_config() {
-    def config_file = file("${projectDir}/conf/qc_tools.yml")
+    def config_file = file("${projectDir}/conf/tools_config.yml")
     if (!config_file.exists()) {
-        error "QC tools configuration file not found: ${config_file}"
+        error "Tools configuration file not found: ${config_file}"
     }
 
     def yaml = new org.yaml.snakeyaml.Yaml()
@@ -152,6 +155,22 @@ def get_enabled_qc_tools() {
     return enabled_tools
 }
 
+//
+// Get enabled assemblers from configuration
+//
+def get_enabled_assemblers() {
+    def config = load_qc_tools_config()
+    def enabled_assemblers = [:]
+
+    config.assemblers.each { assembler_name, assembler_config ->
+        if (assembler_config.enabled) {
+            enabled_assemblers[assembler_name] = assembler_config
+        }
+    }
+
+    return enabled_assemblers
+}
+
 
 //
 // Add information to the meta map about which QC tool is used and which parameters are set
@@ -164,6 +183,7 @@ def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_args) {
         }
     }
 }
+
 
 
 //
@@ -180,6 +200,24 @@ def create_flye_samplesheet(ch_samplesheet, modes) {
         }
         .multiMap { meta, fastq ->
             def mode_input = "--" + meta.mode
+            samplesheet: [meta, fastq]
+            mode: mode_input
+        }
+}
+
+//
+// Generic assembler samplesheet creator that works with different assemblers
+// Creates mode/parameter input based on assembler configuration
+//
+def create_generic_assembler_samplesheet(ch_samplesheet, assembler_args) {
+    return ch_samplesheet
+        .flatMap { meta, filePath ->
+            assembler_args.collect { arg ->
+                [meta + [assembler_mode: arg], filePath]
+            }
+        }
+        .multiMap { meta, fastq ->
+            def mode_input = "--" + meta.assembler_mode
             samplesheet: [meta, fastq]
             mode: mode_input
         }
@@ -221,6 +259,39 @@ workflow QC_TOOL_EXECUTOR {
     def (ch_output, ch_versions) = execute_qc_tool(ch_samplesheet, module_name, output_channel)
 
     log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
+
+    emit:
+    output   = ch_output
+    versions = ch_versions
+}
+
+/*
+    ASSEMBLER EXECUTOR SUBWORKFLOW
+*/
+
+//
+// Generic Assembler Executor Subworkflow
+// This subworkflow executes assemblers based on configuration using the helper function
+// NOTE: Nextflow requires static imports - dynamic module loading is not possible
+//
+workflow ASSEMBLER_EXECUTOR {
+
+    take:
+    ch_samplesheet  // channel: samplesheet with metadata
+    ch_mode         // channel: assembler mode/parameters
+    assembler_name  // string: name of the assembler to execute
+    assembler_config // map: assembler configuration from YAML
+
+    main:
+
+    // Execute assembler using helper function
+    def module_name = assembler_config.module
+    def output_channel = assembler_config.output_channel
+
+    // Call the helper function that contains the dynamically generated switch cases
+    def (ch_output, ch_versions) = execute_assembler(ch_samplesheet, ch_mode, module_name, output_channel)
+
+    log.info "Successfully executed assembler: ${assembler_name} (${module_name})"
 
     emit:
     output   = ch_output
