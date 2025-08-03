@@ -25,8 +25,8 @@ fi
 
 # Configuration
 CONFIG_FILE="conf/qc_tools.yml"
-UTILS_FILE="subworkflows/local/utils_nfcore_qcbench_pipeline/main.nf"
-BACKUP_FILE="${UTILS_FILE}.backup"
+HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
+BACKUP_FILE="${HELPER_FILE}.backup"
 
 echo -e "${YELLOW}Loading QC tools configuration...${NC}"
 
@@ -35,13 +35,13 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
     exit 1
 fi
 
-if [[ ! -f "$UTILS_FILE" ]]; then
-    echo -e "${RED}Utils file not found: $UTILS_FILE${NC}"
+if [[ ! -f "$HELPER_FILE" ]]; then
+    echo -e "${RED}Helper file not found: $HELPER_FILE${NC}"
     exit 1
 fi
 
-# Backup original file
-cp "$UTILS_FILE" "$BACKUP_FILE"
+# Create backup for safety (but won't restore for debugging purposes)
+cp "$HELPER_FILE" "$BACKUP_FILE"
 
 # Extract enabled tools and generate imports and switch cases
 IMPORTS=""
@@ -85,20 +85,20 @@ for tool in "${ENABLED_TOOLS[@]}"; do
     echo "   - $tool"
 done
 
-# Update utils file with dynamic imports
-echo -e "\n${YELLOW}Updating utils file with dynamic imports...${NC}"
+# Update helper file with dynamic imports
+echo -e "\n${YELLOW}Updating helper file with dynamic imports...${NC}"
 
 # Create a temporary file
 TEMP_FILE=$(mktemp)
 
-# Read the utils file and replace imports and switch cases sections
+# Read the helper file and replace imports and switch cases sections
 while IFS= read -r line; do
-    if [[ "$line" == *"// QC Tool imports"* ]]; then
+    if [[ "$line" == *"// DYNAMIC_IMPORTS_START"* ]]; then
         echo "$line" >> "$TEMP_FILE"
         echo -e "$IMPORTS" >> "$TEMP_FILE"
         # Skip lines until we find the end marker
         while IFS= read -r line; do
-            if [[ "$line" == *"// Add more QC tool imports here as needed"* ]]; then
+            if [[ "$line" == *"// DYNAMIC_IMPORTS_END"* ]]; then
                 echo "$line" >> "$TEMP_FILE"
                 break
             fi
@@ -116,12 +116,12 @@ while IFS= read -r line; do
     else
         echo "$line" >> "$TEMP_FILE"
     fi
-done < "$UTILS_FILE"
+done < "$HELPER_FILE"
 
 # Replace the original file
-mv "$TEMP_FILE" "$UTILS_FILE"
+mv "$TEMP_FILE" "$HELPER_FILE"
 
-echo -e "${GREEN}Updated $UTILS_FILE with dynamic imports${NC}"
+echo -e "${GREEN}Updated $HELPER_FILE with dynamic imports${NC}"
 
 # Check for --skip-nextflow parameter
 SKIP_NEXTFLOW=false
@@ -137,15 +137,13 @@ done
 # Run Nextflow (unless skipped)
 if [[ "$SKIP_NEXTFLOW" == "true" ]]; then
     echo -e "${YELLOW}Skipping Nextflow execution (--skip-nextflow specified)${NC}"
-    echo -e "${BLUE}Sleeping 10 seconds so you can verify modules were added...${NC}"
-    sleep 10
+    echo -e "${BLUE}Helper file left with generated code for debugging purposes${NC}"
 else
     echo -e "\n${BLUE}Running Nextflow pipeline...${NC}"
     echo "Command: nextflow ${NEXTFLOW_ARGS[*]}"
     nextflow "${NEXTFLOW_ARGS[@]}"
 fi
 
-# Restore original file after completion
-echo -e "${YELLOW}Restoring original file...${NC}"
-mv "$BACKUP_FILE" "$UTILS_FILE"
-echo -e "${GREEN}File restored to original state${NC}"
+# Keep generated code in helper file for debugging purposes
+echo -e "${GREEN}Helper file left with generated code for debugging: $HELPER_FILE${NC}"
+echo -e "${BLUE}Backup of original file available at: $BACKUP_FILE${NC}"

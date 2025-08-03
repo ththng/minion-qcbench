@@ -17,11 +17,8 @@ include { dashedLine                } from '../../nf-core/utils_nfcore_pipeline'
 include { workflowHeader            } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
 
-// QC Tool imports
-include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
-include { CHOPPER } from '../../../modules/nf-core/chopper/main'
-include { PRINSEQPLUSPLUS } from '../../../modules/nf-core/prinseqplusplus/main'
-// Add more QC tool imports here as needed
+// QC Tool Executor Helper
+include { execute_qc_tool } from '../qc_tool_executor_helper/main'
 
 /*
 ========================================================================================
@@ -204,7 +201,7 @@ def create_quast_samplesheet(ch_samplesheet) {
 
 //
 // Generic QC Tool Executor Subworkflow
-// This subworkflow executes QC tools based on configuration
+// This subworkflow executes QC tools based on configuration using the helper function
 // NOTE: Nextflow requires static imports - dynamic module loading is not possible
 //
 workflow QC_TOOL_EXECUTOR {
@@ -216,39 +213,12 @@ workflow QC_TOOL_EXECUTOR {
 
     main:
 
-    ch_versions = Channel.empty()
-    ch_output = Channel.empty()
-
-    // Execute QC tool using switch case
+    // Execute QC tool using helper function
     def module_name = tool_config.module
     def output_channel = tool_config.output_channel
 
-    switch(module_name) {
-        // DYNAMIC_SWITCH_CASES_START
-        case 'COPYFASTQ':
-            COPYFASTQ(ch_samplesheet)
-            ch_output = COPYFASTQ.out."${output_channel}"
-            break
-        case 'CHOPPER':
-            CHOPPER(ch_samplesheet)
-            ch_output = CHOPPER.out."${output_channel}"
-            if (CHOPPER.out.versions) {
-                ch_versions = ch_versions.mix(CHOPPER.out.versions)
-            }
-            break
-        case 'PRINSEQPLUSPLUS':
-            PRINSEQPLUSPLUS(ch_samplesheet)
-            ch_output = PRINSEQPLUSPLUS.out."${output_channel}"
-            if (PRINSEQPLUSPLUS.out.versions) {
-                ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
-            }
-            break
-        // DYNAMIC_SWITCH_CASES_END
-
-        default:
-            log.error "QC tool '${tool_name}' module '${module_name}' is not implemented in switch statement."
-            error "Unsupported QC tool module: ${module_name}"
-    }
+    // Call the helper function that contains the dynamically generated switch cases
+    def (ch_output, ch_versions) = execute_qc_tool(ch_samplesheet, module_name, output_channel)
 
     log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
 
