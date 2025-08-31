@@ -23,6 +23,13 @@ if ! command -v yq &> /dev/null; then
     exit 1
 fi
 
+# Check if nf-core is available for module installation
+if ! command -v nf-core &> /dev/null; then
+    echo -e "${RED}Error: 'nf-core' is required but not installed.${NC}"
+    echo "Please install nf-core: pip install nf-core"
+    exit 1
+fi
+
 # Function to process templates with variable substitution
 process_template() {
     local template_file="$1"
@@ -35,6 +42,93 @@ process_template() {
 
     # Replace {{MODULE_NAME}} with actual module name
     sed "s/{{MODULE_NAME}}/$module_name/g" "$template_file"
+}
+
+# Function to check if a module exists
+module_exists() {
+    local module_path="$1"
+    # Convert relative path to absolute path from project root
+    local full_path="${module_path#../../../}"
+    [[ -f "$full_path/main.nf" ]]
+}
+
+# Function to install nf-core module
+install_nf_core_module() {
+    local module_name="$1"
+    local module_path="$2"
+
+    echo -e "${YELLOW}Installing nf-core module: $module_name${NC}"
+
+    # Extract just the module name (lowercase) for nf-core install command
+    local install_name=$(echo "$module_name" | tr '[:upper:]' '[:lower:]')
+
+    # Run nf-core modules install command
+    if nf-core modules install "$install_name"; then
+        echo -e "${GREEN}Successfully installed module: $module_name${NC}"
+        return 0
+    else
+        echo -e "${RED}Failed to install module: $module_name${NC}"
+        echo -e "${YELLOW}Please check if the module name is correct or install manually${NC}"
+        return 1
+    fi
+}
+
+# Function to ensure all required modules are installed
+ensure_modules_installed() {
+    local tools_array=("$@")
+    local missing_modules=()
+    local failed_installs=()
+
+    echo -e "${BLUE}Checking module availability...${NC}"
+
+    for tool_name in "${tools_array[@]}"; do
+        local module_name=$(yq eval ".qc_tools.${tool_name}.module // .assemblers.${tool_name}.module" "$CONFIG_FILE")
+        local module_path=$(yq eval ".qc_tools.${tool_name}.module_path // .assemblers.${tool_name}.module_path" "$CONFIG_FILE")
+
+        if [[ "$module_name" != "null" && "$module_path" != "null" ]]; then
+            if ! module_exists "$module_path"; then
+                # Skip local modules (they should already exist)
+                if [[ "$module_path" == *"/local/"* ]]; then
+                    echo -e "${YELLOW}Warning: Local module not found: $module_path${NC}"
+                    echo -e "${YELLOW}Please ensure local modules are properly created${NC}"
+                    continue
+                fi
+
+                missing_modules+=("$tool_name:$module_name:$module_path")
+            else
+                echo -e "${GREEN}✓ Module exists: $module_name${NC}"
+            fi
+        fi
+    done
+
+    # Install missing modules
+    if [[ ${#missing_modules[@]} -gt 0 ]]; then
+        echo -e "${YELLOW}Found ${#missing_modules[@]} missing modules. Installing...${NC}"
+
+        for module_info in "${missing_modules[@]}"; do
+            IFS=':' read -r tool_name module_name module_path <<< "$module_info"
+
+            if ! install_nf_core_module "$module_name" "$module_path"; then
+                failed_installs+=("$tool_name")
+            fi
+        done
+
+        # Check for installation failures
+        if [[ ${#failed_installs[@]} -gt 0 ]]; then
+            echo -e "${RED}Failed to install modules for the following tools:${NC}"
+            for tool in "${failed_installs[@]}"; do
+                echo -e "${RED}  - $tool${NC}"
+            done
+            echo -e "${YELLOW}Please install these modules manually or disable them in $CONFIG_FILE${NC}"
+            return 1
+        fi
+
+        echo -e "${GREEN}All missing modules installed successfully!${NC}"
+    else
+        echo -e "${GREEN}All required modules are already available${NC}"
+    fi
+
+    return 0
 }
 
 # Configuration
@@ -132,6 +226,14 @@ echo -e "${GREEN}Found ${#ENABLED_ASSEMBLERS[@]} enabled assemblers:${NC}"
 for assembler in "${ENABLED_ASSEMBLERS[@]}"; do
     echo "   - $assembler"
 done
+
+# Ensure all required modules are installed
+echo -e "\n${BLUE}Ensuring all required modules are installed...${NC}"
+ALL_TOOLS=("${ENABLED_QC_TOOLS[@]}" "${ENABLED_ASSEMBLERS[@]}")
+if ! ensure_modules_installed "${ALL_TOOLS[@]}"; then
+    echo -e "${RED}Module installation failed. Exiting.${NC}"
+    exit 1
+fi
 
 # Update QC helper file with dynamic imports
 echo -e "\n${YELLOW}Updating QC helper file with dynamic imports...${NC}"
