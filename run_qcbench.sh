@@ -24,6 +24,7 @@ show_usage() {
     echo "  $0 generate                    # Install modules and generate dynamic code"
     echo "  $0 execute [nextflow_args...]  # Execute Nextflow pipeline"
     echo "  $0 run [nextflow_args...]      # Legacy: generate + execute in one step"
+    echo "  $0 run --skip-nextflow         # Generate code only, skip Nextflow execution"
     echo
     echo -e "${CYAN}Workflow:${NC}"
     echo "  1. Configure tools in conf/tools_config.yml"
@@ -76,29 +77,13 @@ echo -e "${BLUE}Dynamic QC Tools and Assemblers Pipeline Wrapper${NC}"
 echo -e "${CYAN}Mode: $MODE${NC}"
 echo "=" | tr '\n' '=' | head -c 60; echo
 
-# Check if yq is available for YAML parsing
-if ! command -v yq &> /dev/null; then
-    echo -e "${RED}Error: 'yq' is required but not installed.${NC}"
-    echo "Please install yq: https://github.com/mikefarah/yq"
-    exit 1
-fi
 
-# Check if nf-core is available for module installation
-if ! command -v nf-core &> /dev/null; then
-    echo -e "${RED}Error: 'nf-core' is required but not installed.${NC}"
-    echo "Please install nf-core: pip install nf-core"
-    exit 1
-fi
 
 # Function to process templates with variable substitution
 process_template() {
     local template_file="$1"
     local module_name="$2"
 
-    if [[ ! -f "$template_file" ]]; then
-        echo -e "${RED}Template file not found: $template_file${NC}"
-        exit 1
-    fi
 
     # Replace {{MODULE_NAME}} with actual module name
     sed "s/{{MODULE_NAME}}/$module_name/g" "$template_file"
@@ -116,6 +101,7 @@ module_exists() {
 install_nf_core_module() {
     local module_name="$1"
     local module_path="$2"
+
 
     echo -e "${YELLOW}Installing nf-core module: $module_name${NC}"
 
@@ -200,20 +186,6 @@ ASSEMBLER_BACKUP_FILE="${ASSEMBLER_HELPER_FILE}.backup"
 
 echo -e "${YELLOW}Loading QC tools and assemblers configuration...${NC}"
 
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo -e "${RED}Configuration file not found: $CONFIG_FILE${NC}"
-    exit 1
-fi
-
-if [[ ! -f "$QC_HELPER_FILE" ]]; then
-    echo -e "${RED}QC helper file not found: $QC_HELPER_FILE${NC}"
-    exit 1
-fi
-
-if [[ ! -f "$ASSEMBLER_HELPER_FILE" ]]; then
-    echo -e "${RED}Assembler helper file not found: $ASSEMBLER_HELPER_FILE${NC}"
-    exit 1
-fi
 
 # Create backups for safety (but won't restore for debugging purposes)
 cp "$QC_HELPER_FILE" "$QC_BACKUP_FILE"
@@ -369,12 +341,16 @@ generate_dynamic_code() {
 # Execute based on mode
 case "$MODE" in
     "GENERATE")
-        # Ensure all required modules are installed
-        echo -e "\n${BLUE}Ensuring all required modules are installed...${NC}"
-        ALL_TOOLS=("${ENABLED_QC_TOOLS[@]}" "${ENABLED_ASSEMBLERS[@]}")
-        if ! ensure_modules_installed "${ALL_TOOLS[@]}"; then
-            echo -e "${RED}Module installation failed. Exiting.${NC}"
-            exit 1
+        # Ensure all required modules are installed (skip if --skip-nextflow)
+        if [[ "$SKIP_NEXTFLOW" != "true" ]]; then
+            echo -e "\n${BLUE}Ensuring all required modules are installed...${NC}"
+            ALL_TOOLS=("${ENABLED_QC_TOOLS[@]}" "${ENABLED_ASSEMBLERS[@]}")
+            if ! ensure_modules_installed "${ALL_TOOLS[@]}"; then
+                echo -e "${RED}Module installation failed. Exiting.${NC}"
+                exit 1
+            fi
+        else
+            echo -e "\n${YELLOW}Skipping module installation (--skip-nextflow specified)${NC}"
         fi
 
         # Generate dynamic code
@@ -404,22 +380,49 @@ case "$MODE" in
         ;;
 
     "LEGACY")
-        # Legacy mode: generate + execute in one step
-        echo -e "${YELLOW}Running in legacy mode (generate + execute)${NC}"
+        # Check if --skip-nextflow is specified
+        SKIP_NEXTFLOW=false
+        FILTERED_ARGS=()
+        for arg in "${NEXTFLOW_ARGS[@]}"; do
+            if [[ "$arg" == "--skip-nextflow" ]]; then
+                SKIP_NEXTFLOW=true
+            else
+                FILTERED_ARGS+=("$arg")
+            fi
+        done
+        NEXTFLOW_ARGS=("${FILTERED_ARGS[@]}")
 
-        # Ensure all required modules are installed
-        echo -e "\n${BLUE}Ensuring all required modules are installed...${NC}"
-        ALL_TOOLS=("${ENABLED_QC_TOOLS[@]}" "${ENABLED_ASSEMBLERS[@]}")
-        if ! ensure_modules_installed "${ALL_TOOLS[@]}"; then
-            echo -e "${RED}Module installation failed. Exiting.${NC}"
-            exit 1
+        if [[ "$SKIP_NEXTFLOW" == "true" ]]; then
+            echo -e "${YELLOW}Running in legacy mode (generate only, skipping Nextflow)${NC}"
+        else
+            echo -e "${YELLOW}Running in legacy mode (generate + execute)${NC}"
+        fi
+
+        # Ensure all required modules are installed (skip if --skip-nextflow)
+        if [[ "$SKIP_NEXTFLOW" != "true" ]]; then
+            echo -e "\n${BLUE}Ensuring all required modules are installed...${NC}"
+            ALL_TOOLS=("${ENABLED_QC_TOOLS[@]}" "${ENABLED_ASSEMBLERS[@]}")
+            if ! ensure_modules_installed "${ALL_TOOLS[@]}"; then
+                echo -e "${RED}Module installation failed. Exiting.${NC}"
+                exit 1
+            fi
+        else
+            echo -e "\n${YELLOW}Skipping module installation (--skip-nextflow specified)${NC}"
         fi
 
         # Generate dynamic code
         generate_dynamic_code
 
-        echo -e "\n${BLUE}Running Nextflow pipeline...${NC}"
-        echo "Command: nextflow ${NEXTFLOW_ARGS[*]}"
-        nextflow "${NEXTFLOW_ARGS[@]}"
+        if [[ "$SKIP_NEXTFLOW" == "true" ]]; then
+            echo -e "\n${GREEN}✅ Generation phase completed successfully!${NC}"
+            echo -e "${CYAN}Nextflow execution skipped as requested.${NC}"
+            echo -e "${CYAN}Next steps:${NC}"
+            echo -e "  1. Review/modify conf/modules.config if needed"
+            echo -e "  2. Run: $0 execute [nextflow_args...] to execute the pipeline"
+        else
+            echo -e "\n${BLUE}Running Nextflow pipeline...${NC}"
+            echo "Command: nextflow ${NEXTFLOW_ARGS[*]}"
+            nextflow "${NEXTFLOW_ARGS[@]}"
+        fi
         ;;
 esac
