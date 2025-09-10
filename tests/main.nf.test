@@ -3,6 +3,12 @@ nextflow_pipeline {
     name "Test Workflow main.nf"
     script "main.nf"
 
+    setup {
+        run("bash") {
+            script "run_qcbench.sh generate"
+        }
+    }
+
     test("Should produce quast reports for each sample") {
 
         when {
@@ -127,6 +133,20 @@ nextflow_pipeline {
             assert workflow.stderr.findAll { it.contains("does not match pattern") }.size() > 0
         }
 
+    }
+
+    cleanup {
+        run("bash") {
+            script """
+            # Restore backup files if they exist
+            if [ -f subworkflows/local/qc_tool_executor_helper/main.nf.backup ]; then
+                mv subworkflows/local/qc_tool_executor_helper/main.nf.backup subworkflows/local/qc_tool_executor_helper/main.nf
+            fi
+            if [ -f subworkflows/local/assembler_executor_helper/main.nf.backup ]; then
+                mv subworkflows/local/assembler_executor_helper/main.nf.backup subworkflows/local/assembler_executor_helper/main.nf
+            fi
+            """
+        }
     }
 
 }
