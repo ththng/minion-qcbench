@@ -27,23 +27,33 @@ Each row represents a sample with the sample ID and the path to the respective F
 Assuming the following folder structure:
 ```
 .
-├── data                      # Data folder containing the samplesheet
-│   ├── samplesheet.csv       # Samplesheet referencing the FASTQ files
-│   └── ...
 └── minion-qcbench            # This project
+    ├── data                  # Data folder containing the samplesheet
+    │   ├── samplesheet.csv   # Samplesheet referencing the FASTQ files
+    │   └── test-datasets/    # FASTQ files
     └── ...
 
 ```
 
-After navigating to the **parent** directory of the `minion-qcbench` project, you can run the pipeline using the minimal example command below, which includes the essential parameters.
+After navigating to the `minion-qcbench` project directory, you can run the pipeline using the minimal example command below, which includes the essential parameters.
 
 ```bash
-nextflow run minion-qcbench \
+# Using the wrapper script (recommended)
+./run_qcbench.sh generate                    # Generate dynamic code
+./run_qcbench.sh execute \
    -profile singularity \
    --input data/samplesheet.csv \
-   --outdir results
-   --quality_scores 13,15               # Minimum Phred average quality scores
-   --flye_modes nano-corr,nano-hq       # Flye modes used for assembly
+   --outdir results \
+   --quality_scores 13,15 \
+   --flye_modes nano-corr,nano-hq
+
+# Or using Nextflow directly
+nextflow run . \
+   -profile singularity \
+   --input data/samplesheet.csv \
+   --outdir results \
+   --quality_scores 13,15 \
+   --flye_modes nano-corr,nano-hq
 ```
 
 ## Output
@@ -54,13 +64,14 @@ Upon completion of the pipeline, the QUAST reports can be found in the directory
 **Example**
 ```
 .
-├── data                      # Data folder containing the samplesheet
-├── minion-qcbench            # This project
-└── results                   # --outdir is set to "results"
-     ├── ...
-     └── quast
-          ├── sample1
-          └── sample2
+└── minion-qcbench            # This project
+    ├── data                  # Data folder containing the samplesheet
+    ├── results               # --outdir is set to "results"
+    │    ├── ...
+    │    └── quast
+    │         ├── sample1
+    │         └── sample2
+    └── ...
 
 ```
 

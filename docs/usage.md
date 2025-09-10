@@ -4,10 +4,10 @@
 ## Pipeline Validation: Running Tests
 Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
 
-Make sure to test your setup with `-profile test` before running the workflow on actual data. The `test` profile runs a minimal test, using a small dataset to quickly verify that the pipeline is working as expected with your setup. After navigating to the **parent** directory of the `minion-qcbench` project, run the following command:
+Make sure to test your setup with `-profile test` before running the workflow on actual data. The `test` profile runs a minimal test, using a small dataset to quickly verify that the pipeline is working as expected with your setup. After navigating to the `minion-qcbench` project directory, run the following command:
 
 ```bash
-nextflow run minion-qcbench -profile test,<docker/singularity>
+nextflow run . -profile test,<docker/singularity>
 ```
 
 ### nf-test
@@ -52,24 +52,25 @@ Each row represents a sample with its corresponding FastQ file path.
 Assuming the following folder structure:
 ```
 .
-├── data                      # Data folder containing the samplesheet
-│   ├── samplesheet.csv       # Samplesheet referencing the FASTQ files
-│   ├── sample1.fastq.gz
-│   ├── sample2.fastq.gz
-│   └── ...
 └── minion-qcbench            # This project
+    ├── data                  # Data folder containing the samplesheet
+    │   ├── samplesheet.csv   # Samplesheet referencing the FASTQ files
+    │   ├── test-datasets/    # FASTQ files
+    │   │   ├── sample1.fastq.gz
+    │   │   ├── sample2.fastq.gz
+    │   │   └── ...
     └── ...
 
 ```
 
-After navigating to the **parent** directory of the `minion-qcbench` project, you can run the pipeline using the minimal example command below, which includes the essential parameters. This is a minimal example; additional optional parameters can be specified as needed.
+After navigating to the `minion-qcbench` project directory, you can run the pipeline using the minimal example command below, which includes the essential parameters. This is a minimal example; additional optional parameters can be specified as needed.
 
 ```bash
-nextflow run minion-qcbench \
+nextflow run . \
    -profile singularity \
    --input data/samplesheet.csv \
-   --outdir results
-   --quality_scores 13,15
+   --outdir results \
+   --quality_scores 13,15 \
    --flye_modes nano-corr,nano-hq
 ```
 

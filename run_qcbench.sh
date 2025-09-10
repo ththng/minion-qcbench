@@ -33,8 +33,9 @@ show_usage() {
     echo
     echo -e "${CYAN}Examples:${NC}"
     echo "  $0 generate"
-    echo "  $0 execute -entry QCBENCH -profile test,singularity --input assets/samplesheet.csv --outdir results"
-    echo "  $0 run -entry QCBENCH -profile test  # Legacy mode"
+    echo "  $0 execute -profile test,singularity --input data/samplesheet.csv --outdir results"
+    echo "  $0 execute --input data/samplesheet.csv --outdir results --quality_scores 13,15 --flye_modes nano-corr,nano-hq"
+    echo "  $0 run -profile test  # Legacy mode"
     echo
 }
 

@@ -1,3 +1,3 @@
 sample,fastq
-sample1,../../../data/test-datasets/sample1.fastq.gz
-sample2,../../../data/test-datasets/sample2.fastq.gz
+sample1,data/test-datasets/sample1.fastq.gz
+sample2,data/test-datasets/sample2.fastq.gz
