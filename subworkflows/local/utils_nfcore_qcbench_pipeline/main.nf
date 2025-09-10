@@ -216,6 +216,7 @@ def create_generic_assembler_samplesheet(ch_samplesheet, assembler_args) {
                 [meta + [assembler_mode: arg], filePath]
             }
         }
+        // To-Do: Many modules do not use multimap - make it more generic
         .multiMap { meta, fastq ->
             def mode_input = "--" + meta.assembler_mode
             samplesheet: [meta, fastq]
