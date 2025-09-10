@@ -20,7 +20,7 @@ nf-test test tests/main.nf.test --profile singularity
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with 3 columns, and a header row as shown in the example below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with 2 columns, and a header row as shown in the example below.
 
 Use this parameter to specify its location.
 
@@ -30,27 +30,22 @@ Use this parameter to specify its location.
 
 ### Full samplesheet
 
-The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 3 columns to match those defined in the table below.
+The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 2 columns to match those defined in the table below.
 
 | Column    | Description                                                                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sample`  | Custom sample name. |
 | `fastq` | Full path to FastQ file for long-read sequencing data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
-| `subsampling` | Subsampling rate.                                                             |
 
 **Example `samplesheet.csv`**
 
 ```csv
-sample,fastq,subsampling
-sample1,sample1.fastq.gz,
-sample1,sample1_80.fastq.gz,80
-sample2,sample2.fastq.gz,
+sample,fastq
+sample1,sample1.fastq.gz
+sample2,sample2.fastq.gz
 ```
 
-The first row represents a sample named `sample1`, which was not subsampled, so the last value is omitted. The second row corresponds to the same sample, subsampled at 80%. The third row refers to a different sample, `sample2`, which was also not subsampled.
-
-<!-- TODO: subsampling ??? path to sample ???
--->
+Each row represents a sample with its corresponding FastQ file path.
 
 ## Running the pipeline
 
@@ -60,7 +55,6 @@ Assuming the following folder structure:
 ├── data                      # Data folder containing the samplesheet
 │   ├── samplesheet.csv       # Samplesheet referencing the FASTQ files
 │   ├── sample1.fastq.gz
-│   ├── sample1_80.fastq.gz
 │   ├── sample2.fastq.gz
 │   └── ...
 └── minion-qcbench            # This project

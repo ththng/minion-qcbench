@@ -17,15 +17,12 @@ First, prepare a samplesheet with your input data that looks as follows:
 `samplesheet.csv`:
 
 ```csv
-sample,fastq,subsampling
-sample1,sample1.fastq.gz,
-sample1,sample1_80.fastq.gz,80
+sample,fastq
+sample1,sample1.fastq.gz
 sample2,sample2.fastq.gz,
 ```
 
-<!-- TODO: subsampling ???
--->
-Each row represents a sample with the sample ID, the path to the respective FASTQ file and how it was subsampled.
+Each row represents a sample with the sample ID and the path to the respective FASTQ file.
 
 Assuming the following folder structure:
 ```

@@ -44,7 +44,7 @@ Add a section for the new module in the `/conf/modules.config` file like this:
 ```groovy
 withName: <NEW_MODULE> {
     ext.args = { "<new_module option> ${meta.qc_args}" }
-    ext.prefix = { "${meta.id}${meta.subsampling ? "_${meta.subsampling}" : '' }_<new_module>_${meta.qc_args}" }
+    ext.prefix = { "${meta.id}_<new_module>_${meta.qc_args}" }
 }
 ```
 
