@@ -22,8 +22,8 @@ if ! command -v yq &> /dev/null; then
 fi
 
 # Configuration
-CONFIG_FILE="minion-qcbench/conf/qc_tools.yml"
-HELPER_FILE="minion-qcbench/subworkflows/local/qc_tool_executor_helper/main.nf"
+CONFIG_FILE="conf/qc_tools.yml"
+HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
 BACKUP_FILE="${HELPER_FILE}.backup"
 
 echo -e "${YELLOW}Loading QC tools configuration...${NC}"

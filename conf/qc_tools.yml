@@ -22,7 +22,7 @@ qc_tools:
     output_channel: "fastq"
     parameters:
       - name: "quality_scores"
-        values: [13, 15]
+        values: [13]
         description: "Filter by minimum average Phred quality score"
 
   # PRINSEQ++ - multi-threaded quality control
@@ -33,7 +33,7 @@ qc_tools:
     output_channel: "good_reads"
     parameters:
       - name: "quality_scores"
-        values: [13, 15]
+        values: [15]
         description: "Filter by quality metrics"
 
   # Example: Filtlong - length-based filtering (disabled by default)

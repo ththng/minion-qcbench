@@ -221,8 +221,6 @@ workflow QC_TOOL_EXECUTOR {
         output_channel
     )
 
-    log.info "Successfully executed QC tool: ${tool_name} (${module_name})"
-
     emit:
     output   = QC_TOOL_SWITCH.out.output
     versions = QC_TOOL_SWITCH.out.versions
