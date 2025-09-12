@@ -11,10 +11,10 @@
 
 // QC Tool imports - dynamically generated
 // DYNAMIC_IMPORTS_START
-include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
-include { CHOPPER } from '../../../modules/nf-core/chopper/main'
-include { FILTLONG } from '../../../modules/nf-core/filtlong/main'
-include { NANOFILT } from '../../../modules/nf-core/nanofilt/main'
+include { COPYFASTQ } from 'modules/local/copyfastq/main.nf'
+include { CHOPPER } from 'modules/nf-core/chopper/main.nf'
+include { FILTLONG } from 'modules/nf-core/filtlong/main.nf'
+include { NANOFILT } from 'modules/nf-core/nanofilt/main.nf'
 
 // DYNAMIC_IMPORTS_END
 

@@ -30,10 +30,9 @@ HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
 
 install_module_if_needed() {
     local tool_name="$1"
-    local module_path="$2"  # Pass the module_path from YAML
+    local module_type="$2"  # "nf-core" or "local"
 
-    # Only install if it's an nf-core module
-    if [[ "$module_path" == *"nf-core"* ]]; then
+    if [[ "$module_type" == "nf-core" ]]; then
         local nfcore_main="modules/nf-core/${tool_name}/main.nf"
         if [[ -s "$nfcore_main" ]]; then
             echo -e "${GREEN}nf-core module '${tool_name}' already installed.${NC}"
@@ -78,12 +77,21 @@ generate_code() {
         if [[ -n "$tool_name" ]]; then
             ENABLED_TOOLS+=("$tool_name")
 
-            # Install nf-core module if needed
-            install_module_if_needed "$tool_name" "$MODULE_PATH"
-
             # Get module name and path for this tool
             MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
-            MODULE_PATH=$(yq eval ".qc_tools.${tool_name}.module_path" "$CONFIG_FILE")
+            MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
+
+            # Install nf-core module if needed
+            install_module_if_needed "$tool_name" "$MODULE_TYPE"
+
+            if [[ "$MODULE_TYPE" == "nf-core" ]]; then
+                MODULE_PATH="modules/nf-core/${tool_name}/main.nf"
+            elif [[ "$MODULE_TYPE" == "local" ]]; then
+                MODULE_PATH="modules/local/${tool_name}/main.nf"
+            else
+                echo -e "${RED}Unknown module type for tool '${tool_name}'. Please specify 'nf-core' or 'local'.${NC}"
+                exit 1
+            fi
 
             if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
                 IMPORTS="${IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
