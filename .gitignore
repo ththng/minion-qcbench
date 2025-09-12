@@ -5,6 +5,5 @@ results/
 testing/
 testing*
 *.pyc
-/data/
 .nf-test
 .nf-test.log
