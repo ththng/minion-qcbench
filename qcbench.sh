@@ -96,9 +96,30 @@ generate_code() {
             if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
                 IMPORTS="${IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
 
+                # Read extra_inputs (if any)
+                EXTRA_INPUTS=$(yq eval ".qc_tools.${tool_name}.extra_inputs" "$CONFIG_FILE")
+
+                # Start building the process call
+                PROCESS_CALL="${MODULE_NAME}(ch_samplesheet"
+
+                # If extra_inputs is not null, add each as an argument
+                if [[ "$EXTRA_INPUTS" != "null" ]]; then
+                    while IFS=": " read -r key value; do
+                        # Remove quotes and whitespace
+                        value=$(echo "$value" | sed 's/^"//;s/"$//;s/^[ \t]*//;s/[ \t]*$//')
+                        # If the value is [], treat as empty list (for optional file/path)
+                        if [[ "$value" == "[]" ]]; then
+                            value="[]"
+                        fi
+                        PROCESS_CALL="${PROCESS_CALL}, ${value}"
+                    done <<< "$(echo "$EXTRA_INPUTS" | yq eval 'to_entries | .[] | "\(.key): \(.value)"' -)"
+                fi
+
+                PROCESS_CALL="${PROCESS_CALL})"
+
                 # Generate switch case for this module
                 SWITCH_CASES="${SWITCH_CASES}        case '${MODULE_NAME}':\n"
-                SWITCH_CASES="${SWITCH_CASES}            ${MODULE_NAME}(ch_samplesheet)\n"
+                SWITCH_CASES="${SWITCH_CASES}            ${PROCESS_CALL}\n"
                 SWITCH_CASES="${SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
                 SWITCH_CASES="${SWITCH_CASES}            try {\n"
                 SWITCH_CASES="${SWITCH_CASES}                if (${MODULE_NAME}.out.versions) {\n"

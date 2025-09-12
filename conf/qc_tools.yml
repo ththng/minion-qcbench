@@ -24,6 +24,8 @@ qc_tools:
       - name: "quality_scores"
         values: [13]
         description: "Filter by minimum average Phred quality score"
+    extra_inputs:
+      fasta: []
 
   # PRINSEQ++ - multi-threaded quality control
   prinseqplusplus:
@@ -49,7 +51,7 @@ qc_tools:
 
   # Example: NanoFilt - another quality filter (disabled by default)
   nanofilt:
-    enabled: false
+    enabled: true
     module: "NANOFILT"
     type: "nf-core"
     output_channel: "filtreads"
@@ -57,6 +59,8 @@ qc_tools:
       - name: "quality"
         values: [13, 15]
         description: "Filter by quality score"
+    extra_inputs:
+      summary_file: []
  
   # Example: Custom tool with direct values
   custom_tool:

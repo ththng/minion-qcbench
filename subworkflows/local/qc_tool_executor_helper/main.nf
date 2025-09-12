@@ -13,6 +13,7 @@
 // DYNAMIC_IMPORTS_START
 include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
 include { CHOPPER } from '../../../modules/nf-core/chopper/main'
+include { NANOFILT } from '../../../modules/nf-core/nanofilt/main'
 
 // DYNAMIC_IMPORTS_END
 
@@ -46,7 +47,7 @@ workflow QC_TOOL_SWITCH {
             }
             break
         case 'CHOPPER':
-            CHOPPER(ch_samplesheet)
+            CHOPPER(ch_samplesheet, [])
             ch_output = CHOPPER.out."${output_channel}"
             try {
                 if (CHOPPER.out.versions) {
@@ -54,6 +55,17 @@ workflow QC_TOOL_SWITCH {
                 }
             } catch (Exception e) {
                 log.warn "CHOPPER doesn't have versions output - skip"
+            }
+            break
+        case 'NANOFILT':
+            NANOFILT(ch_samplesheet, [])
+            ch_output = NANOFILT.out."${output_channel}"
+            try {
+                if (NANOFILT.out.versions) {
+                    ch_versions = ch_versions.mix(NANOFILT.out.versions)
+                }
+            } catch (Exception e) {
+                log.warn "NANOFILT doesn't have versions output - skip"
             }
             break
 
