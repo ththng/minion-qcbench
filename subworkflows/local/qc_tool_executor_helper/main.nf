@@ -11,6 +11,9 @@
 
 // QC Tool imports - dynamically generated
 // DYNAMIC_IMPORTS_START
+include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
+include { CHOPPER } from '../../../modules/nf-core/chopper/main'
+include { PRINSEQPLUSPLUS } from '../../../modules/nf-core/prinseqplusplus/main'
 
 // DYNAMIC_IMPORTS_END
 
@@ -32,6 +35,39 @@ workflow QC_TOOL_SWITCH {
 
     switch(module_name) {
         // DYNAMIC_SWITCH_CASES_START
+        case 'COPYFASTQ':
+            COPYFASTQ(ch_samplesheet)
+            ch_output = COPYFASTQ.out."${output_channel}"
+            try {
+                if (COPYFASTQ.out.versions) {
+                    ch_versions = ch_versions.mix(COPYFASTQ.out.versions)
+                }
+            } catch (Exception e) {
+                log.warn "COPYFASTQ doesn't have versions output - skip"
+            }
+            break
+        case 'CHOPPER':
+            CHOPPER(ch_samplesheet)
+            ch_output = CHOPPER.out."${output_channel}"
+            try {
+                if (CHOPPER.out.versions) {
+                    ch_versions = ch_versions.mix(CHOPPER.out.versions)
+                }
+            } catch (Exception e) {
+                log.warn "CHOPPER doesn't have versions output - skip"
+            }
+            break
+        case 'PRINSEQPLUSPLUS':
+            PRINSEQPLUSPLUS(ch_samplesheet)
+            ch_output = PRINSEQPLUSPLUS.out."${output_channel}"
+            try {
+                if (PRINSEQPLUSPLUS.out.versions) {
+                    ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
+                }
+            } catch (Exception e) {
+                log.warn "PRINSEQPLUSPLUS doesn't have versions output - skip"
+            }
+            break
 
         // DYNAMIC_SWITCH_CASES_END
 
