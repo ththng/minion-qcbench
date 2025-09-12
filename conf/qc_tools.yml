@@ -38,7 +38,7 @@ qc_tools:
 
   # Example: Filtlong - length-based filtering (disabled by default)
   filtlong:
-    enabled: true
+    enabled: false
     module: "FILTLONG"
     type: "nf-core"
     output_channel: "reads"
@@ -49,7 +49,7 @@ qc_tools:
 
   # Example: NanoFilt - another quality filter (disabled by default)
   nanofilt:
-    enabled: true
+    enabled: false
     module: "NANOFILT"
     type: "nf-core"
     output_channel: "filtreads"

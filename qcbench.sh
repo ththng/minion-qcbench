@@ -85,9 +85,9 @@ generate_code() {
             install_module_if_needed "$tool_name" "$MODULE_TYPE"
 
             if [[ "$MODULE_TYPE" == "nf-core" ]]; then
-                MODULE_PATH="modules/nf-core/${tool_name}/main.nf"
+                MODULE_PATH="../../../modules/nf-core/${tool_name}/main"
             elif [[ "$MODULE_TYPE" == "local" ]]; then
-                MODULE_PATH="modules/local/${tool_name}/main.nf"
+                MODULE_PATH="../../../modules/local/${tool_name}/main"
             else
                 echo -e "${RED}Unknown module type for tool '${tool_name}'. Please specify 'nf-core' or 'local'.${NC}"
                 exit 1

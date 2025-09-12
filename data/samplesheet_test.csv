@@ -1,4 +1,3 @@
 sample,fastq
-sample1,data/test-datasets/ERR9030345_test.fastq.gz
-sample2,data/test-datasets/ERR9030345_test.fastq.gz
-
+sample1,data/ERR9030345_test.fastq.gz
+sample2,data/ERR9030345_test.fastq.gz
