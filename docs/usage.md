@@ -1,6 +1,10 @@
 # minion-qcbench: Usage
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Furthermore we have used [nf-test](https://www.nf-test.com) to write pipeline tests and [Apptainer](https://apptainer.org) as container system.
 
+## Dynamic QC Tools System
+
+The pipeline features an extensible QC tools system configured in `conf/qc_tools.yml`. You can enable/disable tools and add new ones without code changes.
+
 ## Pipeline Validation: Running Tests
 Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
 
@@ -49,6 +53,46 @@ Each row represents a sample with its corresponding FastQ file path.
 
 ## Running the pipeline
 
+The pipeline uses a **dynamic code generation system** and can be executed in two ways:
+
+### Method 1: Using the Wrapper Script (Recommended)
+
+The wrapper script `qcbench.sh` handles the dynamic code generation automatically:
+
+```bash
+# Generate dynamic code and execute in one step
+./qcbench.sh execute -profile singularity \
+   --input data/samplesheet.csv \
+   --outdir results \
+   --quality_scores 13,15 \
+   --flye_modes nano-corr,nano-hq
+
+# Or generate code first, then execute separately
+./qcbench.sh generate                    # Generate dynamic QC tool code
+./qcbench.sh execute -profile singularity \
+   --input data/samplesheet.csv \
+   --outdir results
+```
+
+### Method 2: Direct Nextflow Execution
+
+For direct Nextflow execution, you must first generate the dynamic code:
+
+```bash
+# First generate the dynamic code
+./qcbench.sh generate
+
+# Then run with standard Nextflow
+nextflow run . \
+   -profile singularity \
+   --input data/samplesheet.csv \
+   --outdir results \
+   --quality_scores 13,15 \
+   --flye_modes nano-corr,nano-hq
+```
+
+### File Structure
+
 Assuming the following folder structure:
 ```
 .
@@ -58,19 +102,9 @@ Assuming the following folder structure:
 │   ├── sample2.fastq.gz
 │   └── ...
 └── minion-qcbench            # This project
+    ├── qcbench.sh            # Wrapper script
+    ├── conf/qc_tools.yml     # QC tools configuration
     └── ...
-
-```
-
-After navigating to the **parent** directory of the `minion-qcbench` project, you can run the pipeline using the minimal example command below, which includes the essential parameters. This is a minimal example; additional optional parameters can be specified as needed.
-
-```bash
-nextflow run minion-qcbench \
-   -profile singularity \
-   --input data/samplesheet.csv \
-   --outdir results
-   --quality_scores 13,15
-   --flye_modes nano-corr,nano-hq
 ```
 
 **Required parameters**

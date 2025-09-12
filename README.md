@@ -24,27 +24,17 @@ sample2,sample2.fastq.gz
 
 Each row represents a sample with the sample ID, the path to the respective FASTQ file.
 
-Assuming the following folder structure:
-```
-.
-├── data                      # Data folder containing the samplesheet
-│   ├── samplesheet.csv       # Samplesheet referencing the FASTQ files
-│   └── ...
-└── minion-qcbench            # This project
-    └── ...
-
-```
-
-After navigating to the **parent** directory of the `minion-qcbench` project, you can run the pipeline using the minimal example command below, which includes the essential parameters.
+You can run the pipeline using:
 
 ```bash
-nextflow run minion-qcbench \
-   -profile singularity \
+./qcbench.sh execute -profile singularity \
    --input data/samplesheet.csv \
-   --outdir results
-   --quality_scores 13,15               # Minimum Phred average quality scores
-   --flye_modes nano-corr,nano-hq       # Flye modes used for assembly
+   --outdir results \
+   --quality_scores 13,15 \
+   --flye_modes nano-corr,nano-hq
 ```
+
+The pipeline uses a configuration-driven approach for QC tools. Edit `conf/qc_tools.yml` to enable/disable tools without code changes. See the [usage documentation](docs/usage.md) for detailed instructions.
 
 ## Output
 The final step of the pipeline is the execution of [`QUAST`](https://github.com/ablab/quast), which evaluates the quality of the assembled genome. QUAST generates a comprehensive report that provides insights into the accuracy and completeness of the assembly. This report includes various metrics such as contig counts, N50, GC content, and alignment statistics against the reference genome (if provided). For more information about QUAST reports, see <https://quast.sourceforge.net/docs/manual.html>.
