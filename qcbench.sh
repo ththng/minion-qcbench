@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Dynamic QC Tools Pipeline Wrapper
 # This script reads the QC tools configuration and dynamically generates
 # the necessary module imports in the utils file before running Nextflow.
@@ -26,6 +28,30 @@ CONFIG_FILE="conf/qc_tools.yml"
 TEMPLATE_FILE="subworkflows/local/qc_tool_executor_helper/main.nf.template"
 HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
 
+install_module_if_needed() {
+    local tool_name="$1"
+    local module_path="$2"  # Pass the module_path from YAML
+
+    # Only install if it's an nf-core module
+    if [[ "$module_path" == *"nf-core"* ]]; then
+        local nfcore_main="modules/nf-core/${tool_name}/main.nf"
+        if [[ -s "$nfcore_main" ]]; then
+            echo -e "${GREEN}nf-core module '${tool_name}' already installed.${NC}"
+        else
+            echo -e "${YELLOW}Installing nf-core module '${tool_name}'...${NC}"
+            nf-core modules install "$tool_name"
+            if [[ -s "$nfcore_main" ]]; then
+                echo -e "${GREEN}Module '${tool_name}' installed successfully.${NC}"
+            else
+                echo -e "${RED}Failed to install module '${tool_name}'.${NC}"
+                exit 1
+            fi
+        fi
+    else
+        echo -e "${BLUE}Local module '${tool_name}' detected, skipping nf-core installation.${NC}"
+    fi
+}
+
 generate_code() {
     echo -e "${YELLOW}Loading QC tools configuration...${NC}"
 
@@ -51,6 +77,9 @@ generate_code() {
     while IFS= read -r tool_name; do
         if [[ -n "$tool_name" ]]; then
             ENABLED_TOOLS+=("$tool_name")
+
+            # Install nf-core module if needed
+            install_module_if_needed "$tool_name" "$MODULE_PATH"
 
             # Get module name and path for this tool
             MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
