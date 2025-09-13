@@ -18,9 +18,8 @@ process {
         saveAs: { filename -> filename.equals('versions.yml') ? null : filename }
     ]
 
-    // DYNAMIC_MODULES_CONFIG_STARTS
     withName: COPYFASTQ {
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
+        ext.prefix = { "${meta.id}_noqc" }
     }
 
     withName: CHOPPER {
@@ -29,17 +28,9 @@ process {
     }
 
     withName: PRINSEQPLUSPLUS {
-        ext.args = { "${meta.additional_options ?: ''} ${meta.qc_option} ${meta.qc_val}" }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
+        ext.args2 = { "-min_len 1000 -min_qual_mean ${meta.qc_val}" }
+        ext.prefix = { "${meta.id}_prinseq_${meta.qc_val}" }
     }
-
-    withName: NANOFILT {
-        ext.args = { "${meta.additional_options ?: ''} ${meta.qc_option} ${meta.qc_val}" }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
-    }
-
-
-    // DYNAMIC_MODULES_CONFIG_ENDS
 
     withName: FLYE {
         ext.args = { params.flye_genome_size ? "-g ${params.flye_genome_size}" : '' }

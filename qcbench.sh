@@ -25,8 +25,10 @@ fi
 
 # Configuration
 CONFIG_FILE="conf/qc_tools.yml"
-TEMPLATE_FILE="subworkflows/local/qc_tool_executor_helper/main.nf.template"
+HELPER_TEMPLATE_FILE="subworkflows/local/qc_tool_executor_helper/main.nf.template"
 HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
+MODULES_CONFIG_TEMPLATE_FILE="conf/modules.config.template"
+MODULES_CONFIG_FILE="conf/modules.config"
 
 install_module_if_needed() {
     local tool_name="$1"
@@ -51,6 +53,46 @@ install_module_if_needed() {
     fi
 }
 
+generate_modules_config() {
+    # Always start from the untouched template
+    cp "$MODULES_CONFIG_TEMPLATE_FILE" "$MODULES_CONFIG_FILE"
+
+    MODULES_BLOCKS=""
+
+    while IFS= read -r tool_name; do
+        # Uppercase tool name for withName
+        TOOL_UPPER=$(echo "$tool_name" | tr '[:lower:]' '[:upper:]')
+        # Generate the block
+        MODULES_BLOCKS+="    withName: ${TOOL_UPPER} {\n"
+        MODULES_BLOCKS+="        ext.args = { \"\${meta.additional_options ?: ''} \${meta.qc_option} \${meta.qc_val}\" }\n"
+        MODULES_BLOCKS+="        ext.prefix = { \"\${meta.id}_\${meta.qc_tool}_\${meta.qc_option.replaceFirst('^-+', '')}_\${meta.qc_val}\" }\n"
+        MODULES_BLOCKS+="    }\n\n"
+    done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
+
+    # Update modules.config file with module configuration
+    echo -e "\n${YELLOW}Updating $MODULES_CONFIG_FILE file with module configuration...${NC}"
+
+    # Insert the generated blocks between the markers
+    TEMP_FILE=$(mktemp)
+    inside_block=false
+    while IFS= read -r line; do
+        if [[ "$line" == *"// DYNAMIC_MODULES_CONFIG_STARTS"* ]]; then
+            echo "$line" >> "$TEMP_FILE"
+            echo -e "$MODULES_BLOCKS" >> "$TEMP_FILE"
+            inside_block=true
+        elif [[ "$line" == *"// DYNAMIC_MODULES_CONFIG_ENDS"* ]]; then
+            inside_block=false
+            echo "$line" >> "$TEMP_FILE"
+        elif [[ "$inside_block" == false ]]; then
+            echo "$line" >> "$TEMP_FILE"
+        fi
+    done < "$MODULES_CONFIG_TEMPLATE_FILE"
+
+    mv "$TEMP_FILE" "$MODULES_CONFIG_FILE"
+
+    echo -e "${GREEN}Updated $MODULES_CONFIG_FILE with module configuration${NC}"
+}
+
 generate_code() {
     echo -e "${YELLOW}Loading QC tools configuration...${NC}"
 
@@ -59,13 +101,13 @@ generate_code() {
         exit 1
     fi
 
-    if [[ ! -f "$TEMPLATE_FILE" ]]; then
-        echo -e "${RED}Template file not found: $TEMPLATE_FILE${NC}"
+    if [[ ! -f "$HELPER_TEMPLATE_FILE" ]]; then
+        echo -e "${RED}Template file not found: $HELPER_TEMPLATE_FILE${NC}"
         exit 1
     fi
 
     # Start from the untouched template
-    cp "$TEMPLATE_FILE" "$HELPER_FILE"
+    cp "$HELPER_TEMPLATE_FILE" "$HELPER_FILE"
 
     # Extract enabled tools and generate imports and switch cases
     IMPORTS=""
@@ -143,7 +185,7 @@ generate_code() {
     done
 
     # Update helper file with module imports and invokation
-    echo -e "\n${YELLOW}Updating helper file with module imports and invokation...${NC}"
+    echo -e "\n${YELLOW}Updating $HELPER_FILE file with module imports and invokation...${NC}"
 
     # Create a temporary file
     TEMP_FILE=$(mktemp)
@@ -192,6 +234,7 @@ execute_pipeline() {
 case "$1" in
     generate)
         generate_code
+        generate_modules_config
         ;;
     execute)
         shift

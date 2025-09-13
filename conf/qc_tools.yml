@@ -31,13 +31,26 @@ qc_tools:
 
   # PRINSEQ++ - multi-threaded quality control
   prinseqplusplus:
-    enabled: false
+    enabled: true
     module: "PRINSEQPLUSPLUS"
     type: "nf-core"
     output_channel: "good_reads"
     options:
-      - option: "quality_scores"
+      - option: "-min_qual_mean"
         values: [15]
+        additional_options: "-min_len 1000"
+
+  # Example: NanoFilt - another quality filter (disabled by default)
+  nanofilt:
+    enabled: true
+    module: "NANOFILT"
+    type: "nf-core"
+    output_channel: "filtreads"
+    options:
+      - option: "--quality"
+        values: [13]
+    extra_inputs:
+      summary_file: []
 
   # Example: Filtlong - length-based filtering (disabled by default)
   filtlong:
@@ -48,18 +61,6 @@ qc_tools:
     options:
       - option: "min_mean_q"
         values: [13, 15]
-
-  # Example: NanoFilt - another quality filter (disabled by default)
-  nanofilt:
-    enabled: false
-    module: "NANOFILT"
-    type: "nf-core"
-    output_channel: "filtreads"
-    options:
-      - option: "quality"
-        values: [13]
-    extra_inputs:
-      summary_file: []
  
   # Example: Custom tool with direct values
   custom_tool:

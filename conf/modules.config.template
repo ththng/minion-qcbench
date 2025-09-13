@@ -19,25 +19,6 @@ process {
     ]
 
     // DYNAMIC_MODULES_CONFIG_STARTS
-    withName: COPYFASTQ {
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
-    }
-
-    withName: CHOPPER {
-        ext.args2 = { "${meta.additional_options ?: ''} ${meta.qc_option} ${meta.qc_val}" }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
-    }
-
-    withName: PRINSEQPLUSPLUS {
-        ext.args = { "${meta.additional_options ?: ''} ${meta.qc_option} ${meta.qc_val}" }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
-    }
-
-    withName: NANOFILT {
-        ext.args = { "${meta.additional_options ?: ''} ${meta.qc_option} ${meta.qc_val}" }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}" }
-    }
-
 
     // DYNAMIC_MODULES_CONFIG_ENDS
 

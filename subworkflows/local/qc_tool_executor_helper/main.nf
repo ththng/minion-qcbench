@@ -13,6 +13,7 @@
 // DYNAMIC_IMPORTS_START
 include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
 include { CHOPPER } from '../../../modules/nf-core/chopper/main'
+include { PRINSEQPLUSPLUS } from '../../../modules/nf-core/prinseqplusplus/main'
 include { NANOFILT } from '../../../modules/nf-core/nanofilt/main'
 
 // DYNAMIC_IMPORTS_END
@@ -55,6 +56,17 @@ workflow QC_TOOL_SWITCH {
                 }
             } catch (Exception e) {
                 log.warn "CHOPPER doesn't have versions output - skip"
+            }
+            break
+        case 'PRINSEQPLUSPLUS':
+            PRINSEQPLUSPLUS(ch_samplesheet)
+            ch_output = PRINSEQPLUSPLUS.out."${output_channel}"
+            try {
+                if (PRINSEQPLUSPLUS.out.versions) {
+                    ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
+                }
+            } catch (Exception e) {
+                log.warn "PRINSEQPLUSPLUS doesn't have versions output - skip"
             }
             break
         case 'NANOFILT':
