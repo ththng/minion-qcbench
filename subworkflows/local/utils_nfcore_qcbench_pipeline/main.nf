@@ -152,8 +152,9 @@ def get_enabled_qc_tools() {
 
 
 //
-// Add information to the meta map about which QC tool is used and which parameters are set
-// If multiple parameter sets are tested for one tool, multiple samplesheets are returned (one for each parameter set)
+// Add information to the meta map about which QC tool is used and which value is set
+// If multiple values are tested for one tool, multiple samplesheets are returned (one for each value)
+// The value refers to a specific parameter of the tool, e.g. the minimum quality threshold for filtering
 //
 def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_vals) {
     return ch_samplesheet.flatMap { meta, filePath ->
