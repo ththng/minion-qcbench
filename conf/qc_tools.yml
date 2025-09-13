@@ -22,8 +22,10 @@ qc_tools:
     options:
       - option: "--quality"
         values: [13]
+        additional_options: "-l 1000"
       - option: "--maxgc"
         values: [0.8]
+        additional_options: "-l 1000"
     extra_inputs:
       fasta: []
 
@@ -49,7 +51,7 @@ qc_tools:
 
   # Example: NanoFilt - another quality filter (disabled by default)
   nanofilt:
-    enabled: true
+    enabled: false
     module: "NANOFILT"
     type: "nf-core"
     output_channel: "filtreads"

@@ -159,8 +159,13 @@ def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_options) {
     return ch_samplesheet.flatMap { meta, filePath ->
         qc_options.collectMany { option_config ->
             def qc_option = option_config.option
+            def additional_options = option_config?.additional_options ?: ''
             option_config.values.collect { qc_val ->
-                [meta + [qc_val: qc_val, qc_tool: qc_tool, qc_option: qc_option], filePath]
+                def meta_map = meta + [qc_val: qc_val, qc_tool: qc_tool, qc_option: qc_option]
+                if (additional_options) {
+                    meta_map['additional_options'] = additional_options
+                }
+                [meta_map, filePath]
             }
         }
     }
