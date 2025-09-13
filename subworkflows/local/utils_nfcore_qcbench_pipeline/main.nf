@@ -156,12 +156,17 @@ def get_enabled_qc_tools() {
 // If multiple values are tested for option, multiple samplesheets are returned (one for each value per option)
 //
 def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_options) {
+    if (!qc_options) {
+        return ch_samplesheet.map { meta, filePath ->
+            [meta + [qc_tool: qc_tool], filePath]
+        }
+    }
     return ch_samplesheet.flatMap { meta, filePath ->
         qc_options.collectMany { option_config ->
             def qc_option = option_config.option
             def additional_options = option_config?.additional_options ?: ''
             option_config.values.collect { qc_val ->
-                def meta_map = meta + [qc_val: qc_val, qc_tool: qc_tool, qc_option: qc_option]
+                def meta_map = meta + [qc_tool: qc_tool, qc_option: qc_option, qc_val: qc_val]
                 if (additional_options) {
                     meta_map['additional_options'] = additional_options
                 }

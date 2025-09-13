@@ -9,9 +9,6 @@ qc_tools:
     module: "COPYFASTQ"
     type: "local"
     output_channel: "fastq"
-    options:
-      - option: "baseline"
-        values: [0]
 
   # Chopper - quality filtering for nanopore data
   chopper:

@@ -64,8 +64,8 @@ generate_modules_config() {
         TOOL_UPPER=$(echo "$tool_name" | tr '[:lower:]' '[:upper:]')
         # Generate the block
         MODULES_BLOCKS+="    withName: ${TOOL_UPPER} {\n"
-        MODULES_BLOCKS+="        ext.args = { \"\${meta.additional_options ?: ''} \${meta.qc_option} \${meta.qc_val}\" }\n"
-        MODULES_BLOCKS+="        ext.prefix = { \"\${meta.id}_\${meta.qc_tool}_\${meta.qc_option.replaceFirst('^-+', '')}_\${meta.qc_val}\" }\n"
+        MODULES_BLOCKS+="        ext.args = { \"\${meta.additional_options ?: ''} \${meta.qc_option ?: ''} \${meta.qc_val ?: ''}\" }\n"
+        MODULES_BLOCKS+="        ext.prefix = { \"\${meta.id}_\${meta.qc_tool}_\${meta.qc_option?.replaceFirst('^-+', '') ?: ''}_\${meta.qc_val}\" }\n"
         MODULES_BLOCKS+="    }\n\n"
     done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
 
