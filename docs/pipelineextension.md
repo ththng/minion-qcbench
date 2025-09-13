@@ -34,7 +34,7 @@ ch_qc_tools = ch_chopper_filtered
 
 The `create_qctool_samplesheet` function adds metadata about the QC tool to the [`meta`](https://nf-co.re/docs/contributing/components/meta_map) variable, which is accessible throughout the pipeline. 
 
-The third argument of the function is used to specify the command-line arguments required for the tool. For example, the tool `Chopper` has an option `-q <Phred score>` to filter reads by a minimum Phred average quality score. If you want to use scores of `13` and `15`, the third argument would be `[13,15]`. This information is added to the `meta`variable, more specifically the `meta.qc_args` field, making them available to the module when it runs the QC tool (see below).
+The third argument of the function is used to specify the command-line arguments required for the tool. For example, the tool `Chopper` has an option `-q <Phred score>` to filter reads by a minimum Phred average quality score. If you want to use scores of `13` and `15`, the third argument would be `[13,15]`. This information is added to the `meta`variable, more specifically the `meta.qc_vals` field, making them available to the module when it runs the QC tool (see below).
 
 ### Changes in `/conf/modules.config`
 
@@ -43,9 +43,9 @@ The `/conf/modules.config` file defines the module's options, including argument
 Add a section for the new module in the `/conf/modules.config` file like this:
 ```groovy
 withName: <NEW_MODULE> {
-    ext.args = { "<new_module option> ${meta.qc_args}" }
-    ext.prefix = { "${meta.id}_<new_module>_${meta.qc_args}" }
+    ext.args = { "<new_module option> ${meta.qc_vals}" }
+    ext.prefix = { "${meta.id}_<new_module>_${meta.qc_vals}" }
 }
 ```
 
-The `ext.args`, `ext.args2` and `ext.args3` entries define the options for the tool. Depending on the module, one or more of these entries may be needed to specify the tool's command-line options. The `meta.qc_args` variable contains the specific arguments, as explained earlier, and is also used in the `ext.prefix` field to define the output file name prefix. This ensures that the outputs from different filtering or quality control actions can be easily identified.
+The `ext.args`, `ext.args2` and `ext.args3` entries define the options for the tool. Depending on the module, one or more of these entries may be needed to specify the tool's command-line options. The `meta.qc_vals` variable contains the specific arguments, as explained earlier, and is also used in the `ext.prefix` field to define the output file name prefix. This ensures that the outputs from different filtering or quality control actions can be easily identified.

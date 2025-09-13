@@ -155,10 +155,10 @@ def get_enabled_qc_tools() {
 // Add information to the meta map about which QC tool is used and which parameters are set
 // If multiple parameter sets are tested for one tool, multiple samplesheets are returned (one for each parameter set)
 //
-def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_args) {
+def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_vals) {
     return ch_samplesheet.flatMap { meta, filePath ->
-        qc_args.collect { qc_arg ->
-            [meta + [qc_arg: qc_arg, qc: qc_tool], filePath]
+        qc_vals.collect { qc_val ->
+            [meta + [qc_val: qc_val, qc: qc_tool], filePath]
         }
     }
 }
