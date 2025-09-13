@@ -38,19 +38,10 @@ workflow QCBENCH {
 
     // Execute enabled QC tools dynamically based on configuration
     enabled_tools.each { tool_name, tool_config ->
-        tool_config.parameters.each { param_config ->
-            // Get parameter values directly from configuration
-            def module_args = param_config.values
-
-            // Create samplesheet for this tool/parameter combination
-            def ch_samplesheet_tool = create_qctool_samplesheet(ch_samplesheet, tool_name, module_args)
-
-            // Execute QC tool using generic executor subworkflow
-            QC_TOOL_EXECUTOR(ch_samplesheet_tool, tool_name, tool_config)
-
-            qc_output_channels.add(QC_TOOL_EXECUTOR.out.output)
-            ch_versions = ch_versions.mix(QC_TOOL_EXECUTOR.out.versions)
-        }
+        def ch_samplesheet_tool = create_qctool_samplesheet(ch_samplesheet, tool_name, tool_config.options)
+        QC_TOOL_EXECUTOR(ch_samplesheet_tool, tool_name, tool_config)
+        qc_output_channels.add(QC_TOOL_EXECUTOR.out.output)
+        ch_versions = ch_versions.mix(QC_TOOL_EXECUTOR.out.versions)
     }
 
     // Merge all QC tool outputs into one channel

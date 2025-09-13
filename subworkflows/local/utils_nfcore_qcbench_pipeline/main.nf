@@ -152,14 +152,16 @@ def get_enabled_qc_tools() {
 
 
 //
-// Add information to the meta map about which QC tool is used and which value is set
-// If multiple values are tested for one tool, multiple samplesheets are returned (one for each value)
-// The value refers to a specific parameter of the tool, e.g. the minimum quality threshold for filtering
+// Add information to the meta map about which QC tool is used with which option and which value is set for that option
+// If multiple values are tested for option, multiple samplesheets are returned (one for each value per option)
 //
-def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_vals) {
+def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_options) {
     return ch_samplesheet.flatMap { meta, filePath ->
-        qc_vals.collect { qc_val ->
-            [meta + [qc_val: qc_val, qc: qc_tool], filePath]
+        qc_options.collectMany { option_config ->
+            def qc_option = option_config.option
+            option_config.values.collect { qc_val ->
+                [meta + [qc_val: qc_val, qc_tool: qc_tool, qc_option: qc_option], filePath]
+            }
         }
     }
 }
