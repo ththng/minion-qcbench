@@ -24,7 +24,7 @@ if ! command -v yq &> /dev/null; then
 fi
 
 # Configuration
-CONFIG_FILE="conf/qc_tools.yml"
+CONFIG_FILE="conf/modules.yml"
 HELPER_TEMPLATE_FILE="subworkflows/local/qc_tool_executor_helper/main.nf.template"
 HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
 MODULES_CONFIG_TEMPLATE_FILE="conf/modules.config.template"
