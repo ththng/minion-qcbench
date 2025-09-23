@@ -36,10 +36,9 @@ workflow QC_TOOL_EXECUTOR {
     ch_output = Channel.empty()
 
     // Execute QC tool using switch case
-    def module_name = tool_config.module
     def output_channel = tool_config.output_channel
 
-    switch(module_name) {
+    switch(tool_name.toUpperCase()) {
         // DYNAMIC_SWITCH_CASES_START
         case 'COPYFASTQ':
             COPYFASTQ(ch_samplesheet)
@@ -89,8 +88,7 @@ workflow QC_TOOL_EXECUTOR {
         // DYNAMIC_SWITCH_CASES_END
 
         default:
-            log.error "QC tool '${tool_name}' module '${module_name}' is not implemented in switch statement."
-            error "Unsupported QC tool module: ${module_name}"
+            log.error "Unsupported QC tool module: ${tool_name}"
     }
 
     emit:

@@ -157,7 +157,7 @@ generate_imports_block() {
     IMPORTS=""
     # QC tool imports
     while IFS= read -r tool_name; do
-        MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
+        MODULE_NAME=$(echo "$tool_name" | tr '[:lower:]' '[:upper:]')
         MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
         if [[ "$MODULE_TYPE" == "nf-core" ]]; then
             MODULE_PATH="../../../modules/nf-core/${tool_name}/main"
@@ -214,7 +214,7 @@ generate_switch_cases_block() {
         if [[ -n "$tool_name" ]]; then
             ENABLED_TOOLS+=("$tool_name")
 
-            MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
+            MODULE_NAME=$(echo "$tool_name" | tr '[:lower:]' '[:upper:]')
             MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
 
             if [[ "$MODULE_NAME" != "null" ]]; then

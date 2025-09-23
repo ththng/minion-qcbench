@@ -34,7 +34,7 @@ You can run the pipeline using:
    --flye_modes nano-corr,nano-hq
 ```
 
-The pipeline uses a configuration-driven approach for QC tools. Edit `conf/qc_tools.yml` to enable/disable tools without code changes. See the [usage documentation](docs/usage.md) for detailed instructions.
+The pipeline uses a configuration-driven approach for QC tools. Edit `conf/modules.yml` to enable/disable tools without code changes. See the [usage documentation](docs/usage.md) for detailed instructions.
 
 ## Output
 The final step of the pipeline is the execution of [`QUAST`](https://github.com/ablab/quast), which evaluates the quality of the assembled genome. QUAST generates a comprehensive report that provides insights into the accuracy and completeness of the assembly. This report includes various metrics such as contig counts, N50, GC content, and alignment statistics against the reference genome (if provided). For more information about QUAST reports, see <https://quast.sourceforge.net/docs/manual.html>.

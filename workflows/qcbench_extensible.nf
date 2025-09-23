@@ -47,7 +47,7 @@ workflow QCBENCH {
 
     // Merge all QC tool outputs into one channel
     if (qc_output_channels.size() == 0) {
-        error "No QC tools are enabled or available. Please check conf/qc_tools.yml"
+        error "No QC tools are enabled or available. Please check conf/modules.yml"
     }
 
     ch_qc_tools = qc_output_channels.size() == 1 ?

@@ -3,7 +3,7 @@
 
 ## Dynamic QC Tools System
 
-The pipeline features an extensible QC tools system configured in `conf/qc_tools.yml`. You can enable/disable tools and add new ones without code changes.
+The pipeline features an extensible QC tools system configured in `conf/modules.yml`. You can enable/disable tools and add new ones without code changes.
 
 ## Pipeline Validation: Running Tests
 Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
@@ -103,7 +103,7 @@ Assuming the following folder structure:
 │   └── ...
 └── minion-qcbench            # This project
     ├── qcbench.sh            # Wrapper script
-    ├── conf/qc_tools.yml     # QC tools configuration
+    ├── conf/modules.yml     # QC tools configuration
     └── ...
 ```
 

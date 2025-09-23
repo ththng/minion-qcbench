@@ -6,14 +6,12 @@ qc_tools:
   # Baseline tool - no filtering (always enabled)
   copyfastq:
     enabled: true
-    module: "COPYFASTQ"
     type: "local"
     output_channel: "fastq"
 
   # Chopper - quality filtering for nanopore data
   chopper:
     enabled: true
-    module: "CHOPPER"
     type: "nf-core"
     output_channel: "fastq"
     options:
@@ -29,7 +27,6 @@ qc_tools:
   # PRINSEQ++ - multi-threaded quality control
   prinseqplusplus:
     enabled: true
-    module: "PRINSEQPLUSPLUS"
     type: "nf-core"
     output_channel: "good_reads"
     options:
@@ -40,7 +37,6 @@ qc_tools:
   # Example: NanoFilt - another quality filter (disabled by default)
   nanofilt:
     enabled: true
-    module: "NANOFILT"
     type: "nf-core"
     output_channel: "filtreads"
     options:
@@ -52,7 +48,6 @@ qc_tools:
   # Example: Filtlong - length-based filtering (disabled by default)
   filtlong:
     enabled: false
-    module: "FILTLONG"
     type: "nf-core"
     output_channel: "reads"
     options:
@@ -62,7 +57,6 @@ qc_tools:
   # Example: Custom tool with direct values
   custom_tool:
     enabled: false
-    module: "CUSTOM_TOOL"
     type: "local"
     output_channel: "fastq"
     options:

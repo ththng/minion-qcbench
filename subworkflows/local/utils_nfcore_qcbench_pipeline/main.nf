@@ -122,7 +122,7 @@ workflow PIPELINE_COMPLETION {
 // Load QC tools configuration from YAML file
 //
 def load_tools_config() {
-    def config_file = file("${projectDir}/conf/qc_tools.yml")
+    def config_file = file("${projectDir}/conf/modules.yml")
     if (!config_file.exists()) {
         error "QC tools configuration file not found: ${config_file}"
     }
