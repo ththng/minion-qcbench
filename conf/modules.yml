@@ -7,28 +7,30 @@ qc_tools:
   copyfastq:
     enabled: true
     type: "local"
-    output_channel: "fastq"
+    output_name: "fastq"
 
   # Chopper - quality filtering for nanopore data
   chopper:
     enabled: true
     type: "nf-core"
-    output_channel: "fastq"
+    extra_inputs:
+      - name: "fasta"
+        type: "path"
+        value: []
+    output_name: "fastq"
     options:
       - option: "--quality"
-        values: [13]
+        values: [15]
         additional_options: "-l 1000"
       - option: "--maxgc"
         values: [0.8]
         additional_options: "-l 1000"
-    extra_inputs:
-      fasta: []
 
   # PRINSEQ++ - multi-threaded quality control
   prinseqplusplus:
     enabled: true
     type: "nf-core"
-    output_channel: "good_reads"
+    output_name: "good_reads"
     options:
       - option: "-min_qual_mean"
         values: [15]
@@ -38,18 +40,20 @@ qc_tools:
   nanofilt:
     enabled: true
     type: "nf-core"
-    output_channel: "filtreads"
+    extra_inputs:
+      - name: "summary_file"
+        type: "path"
+        value: []
+    output_name: "filtreads"
     options:
       - option: "--quality"
         values: [13]
-    extra_inputs:
-      summary_file: []
 
   # Example: Filtlong - length-based filtering (disabled by default)
   filtlong:
     enabled: false
     type: "nf-core"
-    output_channel: "reads"
+    output_name: "reads"
     options:
       - option: "min_mean_q"
         values: [13, 15]
@@ -58,7 +62,7 @@ qc_tools:
   custom_tool:
     enabled: false
     type: "local"
-    output_channel: "fastq"
+    output_name: "fastq"
     options:
       - option: "custom_param"
         values: [10, 20, 30]
@@ -67,9 +71,11 @@ assembler:
   flye:
     enabled: true
     type: "nf-core"
-    output_channel: "fasta"
+    extra_inputs:
+      - name: "mode"
+        type: "val"
+        value: "--nano-corr"
+    output_name: "fasta"
     options:
       - option: "-g"
         values: ["4.4m"]
-    extra_inputs:
-      mode: "--nano-corr"

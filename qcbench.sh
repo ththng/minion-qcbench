@@ -221,19 +221,29 @@ generate_switch_cases_block() {
                 EXTRA_INPUTS=$(yq eval ".qc_tools.${tool_name}.extra_inputs" "$CONFIG_FILE")
                 PROCESS_CALL="${MODULE_NAME}(ch_samplesheet"
                 if [[ "$EXTRA_INPUTS" != "null" ]]; then
-                    while IFS=": " read -r key value; do
-                        value=$(echo "$value" | sed 's/^"//;s/"$//;s/^[ \t]*//;s/[ \t]*$//')
-                        if [[ "$value" == "[]" ]]; then
-                            value="[]"
+                    for i in $(seq 0 $(echo "$EXTRA_INPUTS" | yq eval 'length - 1' -)); do
+                        value=$(echo "$EXTRA_INPUTS" | yq eval ".[$i].value" -)
+                        type=$(echo "$EXTRA_INPUTS" | yq eval ".[$i].type" -)
+
+                        # Quoting logic based on type
+                        if [[ "$type" == "path" || "$type" == "tuple" ]]; then
+                            # No quotes
+                            :
+                        elif [[ "$type" == "val" ]]; then
+                            if [[ "$value" == "true" || "$value" == "false" || "$value" =~ ^[0-9]+$ ]]; then
+                                :
+                            else
+                                value="\"$value\""
+                            fi
                         fi
                         PROCESS_CALL="${PROCESS_CALL}, ${value}"
-                    done <<< "$(echo "$EXTRA_INPUTS" | yq eval 'to_entries | .[] | "\(.key): \(.value)"' -)"
+                    done
                 fi
                 PROCESS_CALL="${PROCESS_CALL})"
 
                 SWITCH_CASES="${SWITCH_CASES}        case '${MODULE_NAME}':\n"
                 SWITCH_CASES="${SWITCH_CASES}            ${PROCESS_CALL}\n"
-                SWITCH_CASES="${SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
+                SWITCH_CASES="${SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_name}\"\n"
                 SWITCH_CASES="${SWITCH_CASES}            try {\n"
                 SWITCH_CASES="${SWITCH_CASES}                if (${MODULE_NAME}.out.versions) {\n"
                 SWITCH_CASES="${SWITCH_CASES}                    ch_versions = ch_versions.mix(${MODULE_NAME}.out.versions)\n"
@@ -281,20 +291,30 @@ generate_assembler_block() {
     fi
 
     ASSEMBLER_NAME_UPPER=$(echo "$FIRST_ASSEMBLER" | tr '[:lower:]' '[:upper:]')
-    ASSEMBLER_OUTPUT_CHANNEL=$(yq eval ".assembler.${FIRST_ASSEMBLER}.output_channel" "$CONFIG_FILE")
+    ASSEMBLER_OUTPUT_CHANNEL=$(yq eval ".assembler.${FIRST_ASSEMBLER}.output_name" "$CONFIG_FILE")
     ASSEMBLER_EXTRA_INPUTS=$(yq eval ".assembler.${FIRST_ASSEMBLER}.extra_inputs" "$CONFIG_FILE")
 
     # Build the process call with extra_inputs in correct order
     ASSEMBLER_PROCESS_CALL="        ${ASSEMBLER_NAME_UPPER}(ch_samplesheet"
     # Add extra_inputs in YAML order
     if [[ "$ASSEMBLER_EXTRA_INPUTS" != "null" ]]; then
-        while IFS=": " read -r key value; do
-            value=$(echo "$value" | sed 's/^"//;s/"$//;s/^[ \t]*//;s/[ \t]*$//')
-            if [[ "$value" == "[]" ]]; then
-                value="[]"
+        for i in $(seq 0 $(echo "$ASSEMBLER_EXTRA_INPUTS" | yq eval 'length - 1' -)); do
+            value=$(echo "$ASSEMBLER_EXTRA_INPUTS" | yq eval ".[$i].value" -)
+            type=$(echo "$ASSEMBLER_EXTRA_INPUTS" | yq eval ".[$i].type" -)
+
+            # Quoting logic based on type
+            if [[ "$type" == "path" || "$type" == "tuple" ]]; then
+                # No quotes
+                :
+            elif [[ "$type" == "val" ]]; then
+                if [[ "$value" == "true" || "$value" == "false" || "$value" =~ ^[0-9]+$ ]]; then
+                    :
+                else
+                    value="\"$value\""
+                fi
             fi
-            ASSEMBLER_PROCESS_CALL="${ASSEMBLER_PROCESS_CALL}, \"${value}\""
-        done <<< "$(echo "$ASSEMBLER_EXTRA_INPUTS" | yq eval 'to_entries | .[] | "\(.key): \(.value)"' -)"
+            ASSEMBLER_PROCESS_CALL="${ASSEMBLER_PROCESS_CALL}, ${value}"
+        done
     fi
     ASSEMBLER_PROCESS_CALL="${ASSEMBLER_PROCESS_CALL})"
 

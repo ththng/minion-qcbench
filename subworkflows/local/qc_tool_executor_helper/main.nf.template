@@ -31,7 +31,7 @@ workflow QC_TOOL_EXECUTOR {
     ch_output = Channel.empty()
 
     // Execute QC tool using switch case
-    def output_channel = tool_config.output_channel
+    def output_name = tool_config.output_name
 
     switch(tool_name.toUpperCase()) {
         // DYNAMIC_SWITCH_CASES_START

@@ -36,13 +36,13 @@ workflow QC_TOOL_EXECUTOR {
     ch_output = Channel.empty()
 
     // Execute QC tool using switch case
-    def output_channel = tool_config.output_channel
+    def output_name = tool_config.output_name
 
     switch(tool_name.toUpperCase()) {
         // DYNAMIC_SWITCH_CASES_START
         case 'COPYFASTQ':
             COPYFASTQ(ch_samplesheet)
-            ch_output = COPYFASTQ.out."${output_channel}"
+            ch_output = COPYFASTQ.out."${output_name}"
             try {
                 if (COPYFASTQ.out.versions) {
                     ch_versions = ch_versions.mix(COPYFASTQ.out.versions)
@@ -53,7 +53,7 @@ workflow QC_TOOL_EXECUTOR {
             break
         case 'CHOPPER':
             CHOPPER(ch_samplesheet, [])
-            ch_output = CHOPPER.out."${output_channel}"
+            ch_output = CHOPPER.out."${output_name}"
             try {
                 if (CHOPPER.out.versions) {
                     ch_versions = ch_versions.mix(CHOPPER.out.versions)
@@ -64,7 +64,7 @@ workflow QC_TOOL_EXECUTOR {
             break
         case 'PRINSEQPLUSPLUS':
             PRINSEQPLUSPLUS(ch_samplesheet)
-            ch_output = PRINSEQPLUSPLUS.out."${output_channel}"
+            ch_output = PRINSEQPLUSPLUS.out."${output_name}"
             try {
                 if (PRINSEQPLUSPLUS.out.versions) {
                     ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
@@ -75,7 +75,7 @@ workflow QC_TOOL_EXECUTOR {
             break
         case 'NANOFILT':
             NANOFILT(ch_samplesheet, [])
-            ch_output = NANOFILT.out."${output_channel}"
+            ch_output = NANOFILT.out."${output_name}"
             try {
                 if (NANOFILT.out.versions) {
                     ch_versions = ch_versions.mix(NANOFILT.out.versions)
