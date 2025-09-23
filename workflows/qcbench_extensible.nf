@@ -7,7 +7,7 @@
 include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { get_enabled_qc_tools; get_enabled_tools; create_qctool_samplesheet; create_assembler_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { get_enabled_tools; create_qctool_samplesheet; create_assembler_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/qc_tool_executor_helper'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
@@ -33,8 +33,7 @@ workflow QCBENCH {
     */
 
     // Load QC tools configuration
-    def enabled_qctools = get_enabled_qc_tools()
-    //def enabled_qctools = get_enabled_tools("qc")
+    def enabled_qctools = get_enabled_tools("qc_tools")
     def qc_output_channels = []
 
     // Execute enabled QC tools dynamically based on configuration
@@ -65,7 +64,7 @@ workflow QCBENCH {
     def first_assembler_config = enabled_assemblers[first_assembler_name]
 
     if (enabled_assemblers.size() == 0) {
-        error "No assemblers are enabled or available. Please check conf/qc_tools.yml"
+        error "No assemblers are enabled or available. Please check conf/modules.yml"
     }
     ch_samplesheet_assembler = create_assembler_samplesheet(ch_qc_tools, first_assembler_config.options)
     ASSEMBLER_EXECUTOR(ch_samplesheet_assembler)

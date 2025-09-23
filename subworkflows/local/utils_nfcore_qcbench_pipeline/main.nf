@@ -134,38 +134,16 @@ def load_tools_config() {
 }
 
 //
-// Get enabled QC tools from configuration
-//
-def get_enabled_qc_tools() {
-    def config = load_tools_config()
-    def enabled_tools = [:]
-
-    config.qc_tools.each { tool_name, tool_config ->
-        if (tool_config.enabled) {
-            enabled_tools[tool_name] = tool_config
-        }
-    }
-
-    return enabled_tools
-}
-
-//
 // Get enabled tools from configuration
+// tool_type can be "qc_tools" or "assembler"
 //
 def get_enabled_tools(tool_type) {
     def config = load_tools_config()
     def enabled_tools = [:]
 
-    if (tool_type === "qc") {
-        config.qc_tools.each { tool_name, tool_config ->
-            if (tool_config.enabled) {
-                enabled_tools[tool_name] = tool_config
-            }
-        }
-    }
-
-    if (tool_type === "assembler") {
-        config.assembler.each { tool_name, tool_config ->
+    def section = config[tool_type]
+    if (section) {
+        section.each { tool_name, tool_config ->
             if (tool_config.enabled) {
                 enabled_tools[tool_name] = tool_config
             }
@@ -218,25 +196,6 @@ def create_assembler_samplesheet(ch_samplesheet, assembler_options) {
             }
         }
     }
-}
-
-//
-// Add information to the meta map about which Flye mode is used
-// If multiple Flye modes are tested, multiple samplesheets (one for each mode) are created
-// Since Flye has 2 input channels (one for the sample, one for the mode), 2 channels are returned for each samplesheet
-//
-def create_flye_samplesheet(ch_samplesheet, modes) {
-    return ch_samplesheet
-        .flatMap { meta, filePath ->
-            modes.collect { mode ->
-                [meta + [mode: mode], filePath]
-            }
-        }
-        .multiMap { meta, fastq ->
-            def mode_input = "--" + meta.mode
-            samplesheet: [meta, fastq]
-            mode: mode_input
-        }
 }
 
 //
