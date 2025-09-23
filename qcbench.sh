@@ -53,12 +53,59 @@ install_module_if_needed() {
     fi
 }
 
+install_modules() {
+    echo -e "${YELLOW}Loading QC tools and assembler configuration...${NC}"
+
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo -e "${RED}Configuration file not found: $CONFIG_FILE${NC}"
+        exit 1
+    fi
+
+    if [[ ! -f "$HELPER_TEMPLATE_FILE" ]]; then
+        echo -e "${RED}Template file not found: $HELPER_TEMPLATE_FILE${NC}"
+        exit 1
+    fi
+
+    # Start from the untouched template
+    cp "$HELPER_TEMPLATE_FILE" "$HELPER_FILE"
+
+    # Extract enabled tools and generate imports and switch cases
+    ENABLED_TOOLS=()
+
+    # Install all enabled tools
+    while IFS= read -r tool_name; do
+        if [[ -n "$tool_name" ]]; then
+            ENABLED_TOOLS+=("$tool_name")
+
+            MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
+
+            # Install nf-core module if needed
+            install_module_if_needed "$tool_name" "$MODULE_TYPE"
+        fi
+    done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
+
+    echo -e "${YELLOW}Found ${#ENABLED_TOOLS[@]} enabled QC tools:${NC}"
+    for tool in "${ENABLED_TOOLS[@]}"; do
+        echo "   - $tool"
+    done
+
+    # Install assembler module
+    FIRST_ASSEMBLER=$(yq eval '.assembler | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE" | head -n 1)
+    if [[ -n "$FIRST_ASSEMBLER" ]]; then
+        ASSEMBLER_TYPE=$(yq eval ".assembler.${FIRST_ASSEMBLER}.type" "$CONFIG_FILE")
+        install_module_if_needed "$FIRST_ASSEMBLER" "$ASSEMBLER_TYPE"
+    fi
+    echo -e "${YELLOW}Found assembler module: $FIRST_ASSEMBLER${NC}"
+
+}
+
 generate_modules_config() {
     # Always start from the untouched template
     cp "$MODULES_CONFIG_TEMPLATE_FILE" "$MODULES_CONFIG_FILE"
 
     MODULES_BLOCKS=""
 
+    # QC tools
     while IFS= read -r tool_name; do
         # Uppercase tool name for withName
         TOOL_UPPER=$(echo "$tool_name" | tr '[:lower:]' '[:upper:]')
@@ -68,6 +115,19 @@ generate_modules_config() {
         MODULES_BLOCKS+="        ext.prefix = { \"\${meta.id}_\${meta.qc_tool}_\${meta.qc_option?.replaceFirst('^-+', '') ?: ''}_\${meta.qc_val}\" }\n"
         MODULES_BLOCKS+="    }\n\n"
     done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
+
+    # Assembler
+    FIRST_ASSEMBLER=$(yq eval '.assembler | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE" | head -n 1)
+    if [[ -z "$FIRST_ASSEMBLER" ]]; then
+        echo -e "${YELLOW}No enabled assembler found in config.${NC}"
+        return
+    fi
+    ASSEMBLER_NAME_UPPER=$(echo "$FIRST_ASSEMBLER" | tr '[:lower:]' '[:upper:]')
+
+    MODULES_BLOCKS+="    withName: ${ASSEMBLER_NAME_UPPER} {\n"
+    MODULES_BLOCKS+="        ext.args = { \"\${meta.assembler_additional_options ?: ''} \${meta.assembler_option ?: ''} \${meta.assembler_val ?: ''}\" }\n"
+    MODULES_BLOCKS+="        ext.prefix = { \"\${meta.id}_\${meta.qc_tool}_\${meta.qc_option?.replaceFirst('^-+', '') ?: ''}_\${meta.qc_val}\" }\n"
+    MODULES_BLOCKS+="    }\n\n"
 
     # Update modules.config file with module configuration
     echo -e "\n${YELLOW}Updating $MODULES_CONFIG_FILE file with module configuration...${NC}"
@@ -93,73 +153,84 @@ generate_modules_config() {
     echo -e "${GREEN}Updated $MODULES_CONFIG_FILE with module configuration${NC}"
 }
 
-generate_code() {
-    echo -e "${YELLOW}Loading QC tools configuration...${NC}"
-
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        echo -e "${RED}Configuration file not found: $CONFIG_FILE${NC}"
-        exit 1
-    fi
-
-    if [[ ! -f "$HELPER_TEMPLATE_FILE" ]]; then
-        echo -e "${RED}Template file not found: $HELPER_TEMPLATE_FILE${NC}"
-        exit 1
-    fi
-
-    # Start from the untouched template
-    cp "$HELPER_TEMPLATE_FILE" "$HELPER_FILE"
-
-    # Extract enabled tools and generate imports and switch cases
+generate_imports_block() {
     IMPORTS=""
+    # QC tool imports
+    while IFS= read -r tool_name; do
+        MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
+        MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
+        if [[ "$MODULE_TYPE" == "nf-core" ]]; then
+            MODULE_PATH="../../../modules/nf-core/${tool_name}/main"
+        elif [[ "$MODULE_TYPE" == "local" ]]; then
+            MODULE_PATH="../../../modules/local/${tool_name}/main"
+        else
+            echo -e "${RED}Unknown module type for tool '${tool_name}'.${NC}"
+            exit 1
+        fi
+        if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
+            IMPORTS="${IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
+        fi
+    done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
+
+    # Assembler import
+    FIRST_ASSEMBLER=$(yq eval '.assembler | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE" | head -n 1)
+    if [[ -n "$FIRST_ASSEMBLER" ]]; then
+        ASSEMBLER_NAME_UPPER=$(echo "$FIRST_ASSEMBLER" | tr '[:lower:]' '[:upper:]')
+        ASSEMBLER_MODULE_PATH="../../../modules/nf-core/${FIRST_ASSEMBLER}/main"
+        IMPORTS="${IMPORTS}include { ${ASSEMBLER_NAME_UPPER} } from '${ASSEMBLER_MODULE_PATH}'\n"
+    fi
+
+    # Remove trailing newline
+    IMPORTS=$(printf "%s" "$IMPORTS")
+
+    # Update helper file with module imports
+    echo -e "\n${YELLOW}Updating $HELPER_FILE file with module imports...${NC}"
+
+    # Insert imports into helper file
+    TEMP_FILE=$(mktemp)
+    inside_block=false
+    while IFS= read -r line; do
+        if [[ "$line" == *"// DYNAMIC_IMPORTS_START"* ]]; then
+            echo "$line" >> "$TEMP_FILE"
+            echo -e "$IMPORTS" >> "$TEMP_FILE"
+            inside_block=true
+        elif [[ "$line" == *"// DYNAMIC_IMPORTS_END"* ]]; then
+            inside_block=false
+            echo "$line" >> "$TEMP_FILE"
+        elif [[ "$inside_block" == false ]]; then
+            echo "$line" >> "$TEMP_FILE"
+        fi
+    done < "$HELPER_FILE"
+    mv "$TEMP_FILE" "$HELPER_FILE"
+
+    echo -e "${GREEN}Updated $HELPER_FILE with module imports${NC}"
+}
+
+generate_switch_cases_block() {
     SWITCH_CASES=""
     ENABLED_TOOLS=()
 
-    # Get all enabled tools
     while IFS= read -r tool_name; do
         if [[ -n "$tool_name" ]]; then
             ENABLED_TOOLS+=("$tool_name")
 
-            # Get module name and path for this tool
             MODULE_NAME=$(yq eval ".qc_tools.${tool_name}.module" "$CONFIG_FILE")
             MODULE_TYPE=$(yq eval ".qc_tools.${tool_name}.type" "$CONFIG_FILE")
 
-            # Install nf-core module if needed
-            install_module_if_needed "$tool_name" "$MODULE_TYPE"
-
-            if [[ "$MODULE_TYPE" == "nf-core" ]]; then
-                MODULE_PATH="../../../modules/nf-core/${tool_name}/main"
-            elif [[ "$MODULE_TYPE" == "local" ]]; then
-                MODULE_PATH="../../../modules/local/${tool_name}/main"
-            else
-                echo -e "${RED}Unknown module type for tool '${tool_name}'. Please specify 'nf-core' or 'local'.${NC}"
-                exit 1
-            fi
-
-            if [[ "$MODULE_NAME" != "null" && "$MODULE_PATH" != "null" ]]; then
-                IMPORTS="${IMPORTS}include { ${MODULE_NAME} } from '${MODULE_PATH}'\n"
-
-                # Read extra_inputs (if any)
+            if [[ "$MODULE_NAME" != "null" ]]; then
                 EXTRA_INPUTS=$(yq eval ".qc_tools.${tool_name}.extra_inputs" "$CONFIG_FILE")
-
-                # Start building the process call
                 PROCESS_CALL="${MODULE_NAME}(ch_samplesheet"
-
-                # If extra_inputs is not null, add each as an argument
                 if [[ "$EXTRA_INPUTS" != "null" ]]; then
                     while IFS=": " read -r key value; do
-                        # Remove quotes and whitespace
                         value=$(echo "$value" | sed 's/^"//;s/"$//;s/^[ \t]*//;s/[ \t]*$//')
-                        # If the value is [], treat as empty list (for optional file/path)
                         if [[ "$value" == "[]" ]]; then
                             value="[]"
                         fi
                         PROCESS_CALL="${PROCESS_CALL}, ${value}"
                     done <<< "$(echo "$EXTRA_INPUTS" | yq eval 'to_entries | .[] | "\(.key): \(.value)"' -)"
                 fi
-
                 PROCESS_CALL="${PROCESS_CALL})"
 
-                # Generate switch case for this module
                 SWITCH_CASES="${SWITCH_CASES}        case '${MODULE_NAME}':\n"
                 SWITCH_CASES="${SWITCH_CASES}            ${PROCESS_CALL}\n"
                 SWITCH_CASES="${SWITCH_CASES}            ch_output = ${MODULE_NAME}.out.\"\${output_channel}\"\n"
@@ -175,52 +246,82 @@ generate_code() {
         fi
     done < <(yq eval '.qc_tools | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE")
 
-    # Remove trailing newline (cross-platform compatible)
-    IMPORTS=$(printf "%s" "$IMPORTS")
     SWITCH_CASES=$(printf "%s" "$SWITCH_CASES")
 
-    echo -e "${GREEN}Found ${#ENABLED_TOOLS[@]} enabled QC tools:${NC}"
-    for tool in "${ENABLED_TOOLS[@]}"; do
-        echo "   - $tool"
-    done
-
-    # Update helper file with module imports and invokation
-    echo -e "\n${YELLOW}Updating $HELPER_FILE file with module imports and invokation...${NC}"
+    # Update helper file with module invokation
+    echo -e "\n${YELLOW}Updating $HELPER_FILE file with module invokation...${NC}"
 
     # Create a temporary file
     TEMP_FILE=$(mktemp)
-
-    # Read the helper file and replace imports and switch cases sections
+    inside_block=false
+    # Read the helper file and replace switch cases sections
     while IFS= read -r line; do
-        if [[ "$line" == *"// DYNAMIC_IMPORTS_START"* ]]; then
-            echo "$line" >> "$TEMP_FILE"
-            echo -e "$IMPORTS" >> "$TEMP_FILE"
-            # Skip lines until we find the end marker
-            while IFS= read -r line; do
-                if [[ "$line" == *"// DYNAMIC_IMPORTS_END"* ]]; then
-                    echo "$line" >> "$TEMP_FILE"
-                    break
-                fi
-            done
-        elif [[ "$line" == *"// DYNAMIC_SWITCH_CASES_START"* ]]; then
+        if [[ "$line" == *"// DYNAMIC_SWITCH_CASES_START"* ]]; then
             echo "$line" >> "$TEMP_FILE"
             echo -e "$SWITCH_CASES" >> "$TEMP_FILE"
-            # Skip lines until we find the end marker
-            while IFS= read -r line; do
-                if [[ "$line" == *"// DYNAMIC_SWITCH_CASES_END"* ]]; then
-                    echo "$line" >> "$TEMP_FILE"
-                    break
-                fi
-            done
-        else
+            inside_block=true
+        elif [[ "$line" == *"// DYNAMIC_SWITCH_CASES_END"* ]]; then
+            inside_block=false
+            echo "$line" >> "$TEMP_FILE"
+        elif [[ "$inside_block" == false ]]; then
             echo "$line" >> "$TEMP_FILE"
         fi
     done < "$HELPER_FILE"
-
-    # Replace the original file
     mv "$TEMP_FILE" "$HELPER_FILE"
 
-    echo -e "${GREEN}Updated $HELPER_FILE with module imports and invokation${NC}"
+    echo -e "${GREEN}Updated $HELPER_FILE with module invokation${NC}"
+}
+
+generate_assembler_block() {
+    # Get the first enabled assembler
+    FIRST_ASSEMBLER=$(yq eval '.assembler | to_entries | .[] | select(.value.enabled == true) | .key' "$CONFIG_FILE" | head -n 1)
+    if [[ -z "$FIRST_ASSEMBLER" ]]; then
+        echo -e "${YELLOW}No enabled assembler found in config.${NC}"
+        return
+    fi
+
+    ASSEMBLER_NAME_UPPER=$(echo "$FIRST_ASSEMBLER" | tr '[:lower:]' '[:upper:]')
+    ASSEMBLER_OUTPUT_CHANNEL=$(yq eval ".assembler.${FIRST_ASSEMBLER}.output_channel" "$CONFIG_FILE")
+    ASSEMBLER_EXTRA_INPUTS=$(yq eval ".assembler.${FIRST_ASSEMBLER}.extra_inputs" "$CONFIG_FILE")
+
+    # Build the process call with extra_inputs in correct order
+    ASSEMBLER_PROCESS_CALL="        ${ASSEMBLER_NAME_UPPER}(ch_samplesheet"
+    # Add extra_inputs in YAML order
+    if [[ "$ASSEMBLER_EXTRA_INPUTS" != "null" ]]; then
+        while IFS=": " read -r key value; do
+            value=$(echo "$value" | sed 's/^"//;s/"$//;s/^[ \t]*//;s/[ \t]*$//')
+            if [[ "$value" == "[]" ]]; then
+                value="[]"
+            fi
+            ASSEMBLER_PROCESS_CALL="${ASSEMBLER_PROCESS_CALL}, \"${value}\""
+        done <<< "$(echo "$ASSEMBLER_EXTRA_INPUTS" | yq eval 'to_entries | .[] | "\(.key): \(.value)"' -)"
+    fi
+    ASSEMBLER_PROCESS_CALL="${ASSEMBLER_PROCESS_CALL})"
+
+    ASSEMBLER_MAIN_BLOCK="${ASSEMBLER_PROCESS_CALL}\n"
+    ASSEMBLER_MAIN_BLOCK+="        ch_output = ${ASSEMBLER_NAME_UPPER}.out.${ASSEMBLER_OUTPUT_CHANNEL}\n"
+    ASSEMBLER_MAIN_BLOCK+="        ch_versions = ${ASSEMBLER_NAME_UPPER}.out.versions\n"
+
+    # Update helper file with assembler invokation
+    echo -e "\n${YELLOW}Updating $HELPER_FILE file with assembler invokation...${NC}"
+
+    TEMP_FILE=$(mktemp)
+    inside_block=false
+    while IFS= read -r line; do
+        if [[ "$line" == *"// DYNAMIC_ASSEMBLER_START"* ]]; then
+            echo "$line" >> "$TEMP_FILE"
+            echo -e "$ASSEMBLER_MAIN_BLOCK" >> "$TEMP_FILE"
+            inside_block=true
+        elif [[ "$line" == *"// DYNAMIC_ASSEMBLER_END"* ]]; then
+            inside_block=false
+            echo "$line" >> "$TEMP_FILE"
+        elif [[ "$inside_block" == false ]]; then
+            echo "$line" >> "$TEMP_FILE"
+        fi
+    done < "$HELPER_FILE"
+    mv "$TEMP_FILE" "$HELPER_FILE"
+
+    echo -e "${GREEN}Updated $HELPER_FILE with assembler invokation${NC}"
 }
 
 execute_pipeline() {
@@ -233,8 +334,11 @@ execute_pipeline() {
 # Main CLI logic
 case "$1" in
     generate)
-        generate_code
+        install_modules
         generate_modules_config
+        generate_imports_block
+        generate_switch_cases_block
+        generate_assembler_block
         ;;
     execute)
         shift

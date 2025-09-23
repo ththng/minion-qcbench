@@ -174,15 +174,6 @@
         }
     ],
     "properties": {
-        "flye_modes": {
-            "type": "string",
-            "description": "flye modes used for assembly, representing the underlying sequencing technology, separated by comma (supported options: pacbio-raw, pacbio-corr, pacbio-hifi, nano-raw, nano-corr, nano-hq)",
-            "pattern": "^(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq)(,\\s*(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq))*$"
-        },
-        "flye_genome_size": {
-            "type": "string",
-            "description": "estimated genome size e.g. 4.4m"
-        },
         "quast_refseq": {
             "type": "string",
             "description": "path to reference genome file"
@@ -191,6 +182,5 @@
             "type": "string",
             "description": "path to file with genomic feature positions in the reference genome"
         }
-    },
-    "required": ["flye_modes"]
+    }
 }

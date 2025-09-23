@@ -15,6 +15,7 @@ include { COPYFASTQ } from '../../../modules/local/copyfastq/main'
 include { CHOPPER } from '../../../modules/nf-core/chopper/main'
 include { PRINSEQPLUSPLUS } from '../../../modules/nf-core/prinseqplusplus/main'
 include { NANOFILT } from '../../../modules/nf-core/nanofilt/main'
+include { FLYE } from '../../../modules/nf-core/flye/main'
 
 // DYNAMIC_IMPORTS_END
 
@@ -23,16 +24,20 @@ include { NANOFILT } from '../../../modules/nf-core/nanofilt/main'
     SUBWORKFLOW TO EXECUTE ONE QC TOOL VIA SWITCH CASE
 ========================================================================================
 */
-workflow QC_TOOL_SWITCH {
+workflow QC_TOOL_EXECUTOR {
 
     take:
-    ch_samplesheet
-    module_name
-    output_channel
+    ch_samplesheet  // channel: samplesheet with metadata
+    tool_name       // string: name of the QC tool to execute
+    tool_config     // map: tool configuration from YAML
 
     main:
     ch_versions = Channel.empty()
     ch_output = Channel.empty()
+
+    // Execute QC tool using switch case
+    def module_name = tool_config.module
+    def output_channel = tool_config.output_channel
 
     switch(module_name) {
         // DYNAMIC_SWITCH_CASES_START
@@ -87,6 +92,32 @@ workflow QC_TOOL_SWITCH {
             log.error "QC tool '${tool_name}' module '${module_name}' is not implemented in switch statement."
             error "Unsupported QC tool module: ${module_name}"
     }
+
+    emit:
+    output = ch_output
+    versions = ch_versions
+}
+
+/*
+========================================================================================
+    SUBWORKFLOW TO EXECUTE THE ASSEMBLER
+========================================================================================
+*/
+workflow ASSEMBLER_EXECUTOR {
+
+    take:
+    ch_samplesheet
+
+    main:
+    ch_output = Channel.empty()
+    ch_versions = Channel.empty()
+
+    // DYNAMIC_ASSEMBLER_START
+        FLYE(ch_samplesheet, "--nano-corr")
+        ch_output = FLYE.out.fasta
+        ch_versions = FLYE.out.versions
+
+    // DYNAMIC_ASSEMBLER_END
 
     emit:
     output = ch_output

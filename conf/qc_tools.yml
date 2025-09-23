@@ -68,3 +68,14 @@ qc_tools:
     options:
       - option: "custom_param"
         values: [10, 20, 30]
+
+assembler:
+  flye:
+    enabled: true
+    type: "nf-core"
+    output_channel: "fasta"
+    options:
+      - option: "-g"
+        values: ["4.4m"]
+    extra_inputs:
+      mode: "--nano-corr"

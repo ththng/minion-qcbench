@@ -7,8 +7,8 @@
 include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { load_qc_tools_config; get_enabled_qc_tools; create_qctool_samplesheet; QC_TOOL_EXECUTOR } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { get_enabled_qc_tools; get_enabled_tools; create_qctool_samplesheet; create_assembler_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/qc_tool_executor_helper'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
@@ -33,11 +33,12 @@ workflow QCBENCH {
     */
 
     // Load QC tools configuration
-    def enabled_tools = get_enabled_qc_tools()
+    def enabled_qctools = get_enabled_qc_tools()
+    //def enabled_qctools = get_enabled_tools("qc")
     def qc_output_channels = []
 
     // Execute enabled QC tools dynamically based on configuration
-    enabled_tools.each { tool_name, tool_config ->
+    enabled_qctools.each { tool_name, tool_config ->
         def ch_samplesheet_tool = create_qctool_samplesheet(ch_samplesheet, tool_name, tool_config.options)
         QC_TOOL_EXECUTOR(ch_samplesheet_tool, tool_name, tool_config)
         qc_output_channels.add(QC_TOOL_EXECUTOR.out.output)
@@ -58,15 +59,18 @@ workflow QCBENCH {
         ASSEMBLY
     ====================================================================================
     */
-    params.flye_modes_list = params.flye_modes?.split(',') as List
+    def enabled_assemblers = get_enabled_tools("assembler")
+    def assembler_names = enabled_assemblers.keySet().toList()
+    def first_assembler_name = assembler_names[0]
+    def first_assembler_config = enabled_assemblers[first_assembler_name]
 
-    //
-    // MODULE: FLYE
-    //
-    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes_list)
-    FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode)
-    ch_assembly = FLYE.out.fasta
-    ch_versions = ch_versions.mix(FLYE.out.versions)
+    if (enabled_assemblers.size() == 0) {
+        error "No assemblers are enabled or available. Please check conf/qc_tools.yml"
+    }
+    ch_samplesheet_assembler = create_assembler_samplesheet(ch_qc_tools, first_assembler_config.options)
+    ASSEMBLER_EXECUTOR(ch_samplesheet_assembler)
+    ch_assembly = ASSEMBLER_EXECUTOR.out.output
+    ch_versions = ch_versions.mix(ASSEMBLER_EXECUTOR.out.versions)
 
     /*
     ====================================================================================

@@ -16,7 +16,6 @@ include { completionSummary         } from '../../nf-core/utils_nfcore_pipeline'
 include { dashedLine                } from '../../nf-core/utils_nfcore_pipeline'
 include { workflowHeader            } from '../../nf-core/utils_nfcore_pipeline'
 include { UTILS_NFCORE_PIPELINE     } from '../../nf-core/utils_nfcore_pipeline'
-include { QC_TOOL_SWITCH            } from '../qc_tool_executor_helper'
 
 /*
 ========================================================================================
@@ -54,7 +53,7 @@ workflow PIPELINE_INITIALISATION {
     //
     pre_help_text = workflowHeader(monochrome_logs)
     post_help_text = '\n'
-    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR> --flye_modes <FLYE_MODE1,FLYE_MODE2,...>"
+    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR>"
     UTILS_NFVALIDATION_PLUGIN (
         help,
         workflow_command,
@@ -122,7 +121,7 @@ workflow PIPELINE_COMPLETION {
 //
 // Load QC tools configuration from YAML file
 //
-def load_qc_tools_config() {
+def load_tools_config() {
     def config_file = file("${projectDir}/conf/qc_tools.yml")
     if (!config_file.exists()) {
         error "QC tools configuration file not found: ${config_file}"
@@ -138,12 +137,38 @@ def load_qc_tools_config() {
 // Get enabled QC tools from configuration
 //
 def get_enabled_qc_tools() {
-    def config = load_qc_tools_config()
+    def config = load_tools_config()
     def enabled_tools = [:]
 
     config.qc_tools.each { tool_name, tool_config ->
         if (tool_config.enabled) {
             enabled_tools[tool_name] = tool_config
+        }
+    }
+
+    return enabled_tools
+}
+
+//
+// Get enabled tools from configuration
+//
+def get_enabled_tools(tool_type) {
+    def config = load_tools_config()
+    def enabled_tools = [:]
+
+    if (tool_type === "qc") {
+        config.qc_tools.each { tool_name, tool_config ->
+            if (tool_config.enabled) {
+                enabled_tools[tool_name] = tool_config
+            }
+        }
+    }
+
+    if (tool_type === "assembler") {
+        config.assembler.each { tool_name, tool_config ->
+            if (tool_config.enabled) {
+                enabled_tools[tool_name] = tool_config
+            }
         }
     }
 
@@ -176,6 +201,24 @@ def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_options) {
     }
 }
 
+def create_assembler_samplesheet(ch_samplesheet, assembler_options) {
+    if (!assembler_options) {
+        return ch_samplesheet
+    }
+    return ch_samplesheet.flatMap { meta, filePath ->
+        assembler_options.collectMany { option_config ->
+            def assembler_option = option_config.option
+            def additional_options = option_config?.additional_options ?: ''
+            option_config.values.collect { assembler_val ->
+                def meta_map = meta + [assembler_option: assembler_option, assembler_val: assembler_val]
+                if (additional_options) {
+                    meta_map['assembler_additional_options'] = additional_options
+                }
+                [meta_map, filePath]
+            }
+        }
+    }
+}
 
 //
 // Add information to the meta map about which Flye mode is used
@@ -204,37 +247,4 @@ def create_quast_samplesheet(ch_samplesheet) {
     return ch_samplesheet.map { meta, filePath ->
         [[id: meta.id], filePath]
     }.groupTuple()
-}
-
-/*
-========================================================================================
-    SUBWORKFLOW TO EXECUTE QC TOOLS
-========================================================================================
-*/
-workflow QC_TOOL_EXECUTOR {
-
-    take:
-    ch_samplesheet  // channel: samplesheet with metadata
-    tool_name       // string: name of the QC tool to execute
-    tool_config     // map: tool configuration from YAML
-
-    main:
-
-    ch_versions = Channel.empty()
-    ch_output = Channel.empty()
-
-    // Execute QC tool using switch case
-    def module_name = tool_config.module
-    def output_channel = tool_config.output_channel
-
-    // Call the QC tool switch subworkflow
-    QC_TOOL_SWITCH (
-        ch_samplesheet,
-        module_name,
-        output_channel
-    )
-
-    emit:
-    output   = QC_TOOL_SWITCH.out.output
-    versions = QC_TOOL_SWITCH.out.versions
 }

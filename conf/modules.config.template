@@ -22,9 +22,4 @@ process {
 
     // DYNAMIC_MODULES_CONFIG_ENDS
 
-    withName: FLYE {
-        ext.args = { params.flye_genome_size ? "-g ${params.flye_genome_size}" : '' }
-        ext.prefix = { "${meta.id}_${meta.qc_tool}_${meta.qc_option.replaceFirst('^-+', '')}_${meta.qc_val}_${meta.mode}" }
-    }
-
 }
