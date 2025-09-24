@@ -49,24 +49,6 @@ qc_tools:
       - option: "--quality"
         values: [13]
 
-  # Example: Filtlong - length-based filtering (disabled by default)
-  filtlong:
-    enabled: false
-    type: "nf-core"
-    output_name: "reads"
-    options:
-      - option: "min_mean_q"
-        values: [13, 15]
- 
-  # Example: Custom tool with direct values
-  custom_tool:
-    enabled: false
-    type: "local"
-    output_name: "fastq"
-    options:
-      - option: "custom_param"
-        values: [10, 20, 30]
-
 assembler:
   flye:
     enabled: true
