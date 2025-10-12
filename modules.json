@@ -1,6 +1,6 @@
 {
-    "name": "minion/qcbench",
-    "homePage": "https://github.com/minion/qcbench",
+    "name": "qcbench",
+    "homePage": "https://github.com/ththng/qcbench",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {

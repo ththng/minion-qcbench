@@ -100,7 +100,7 @@ workflow QCBENCH {
     softwareVersionsToYAML(ch_versions)
         .collectFile(
             storeDir: "${params.outdir}/pipeline_info",
-            name: 'minion_qcbench_software_versions.yml',
+            name: 'qcbench_software_versions.yml',
             sort: true,
             newLine: true
         ).set { ch_collated_versions }
