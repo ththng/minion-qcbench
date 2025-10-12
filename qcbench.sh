@@ -2,7 +2,7 @@
 
 # Dynamic QC Tools Pipeline Wrapper
 # This script reads the QC tools configuration and dynamically generates
-# the necessary module imports in the utils file before running Nextflow.
+# the necessary module imports and invokations in the helper file before running Nextflow.
 
 set -e
 
@@ -25,8 +25,8 @@ fi
 
 # Configuration
 CONFIG_FILE="conf/modules.yml"
-HELPER_TEMPLATE_FILE="subworkflows/local/qc_tool_executor_helper/main.nf.template"
-HELPER_FILE="subworkflows/local/qc_tool_executor_helper/main.nf"
+HELPER_TEMPLATE_FILE="subworkflows/local/module_executor_helper/main.nf.template"
+HELPER_FILE="subworkflows/local/module_executor_helper/main.nf"
 MODULES_CONFIG_TEMPLATE_FILE="conf/modules.config.template"
 MODULES_CONFIG_FILE="conf/modules.config"
 

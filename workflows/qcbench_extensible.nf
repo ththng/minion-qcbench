@@ -8,7 +8,7 @@ include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { get_enabled_tools; create_qctool_samplesheet; create_assembler_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-include { QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/qc_tool_executor_helper'
+include { QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/module_executor_helper'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
