@@ -1,6 +1,6 @@
 {
-    "name": "minion/qcbench",
-    "homePage": "https://github.com/minion/qcbench",
+    "name": "QCbench",
+    "homePage": "https://github.com/ththng/qcbench",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {
@@ -10,9 +10,19 @@
                         "git_sha": "06a7b9319c2e3e76d39e356571d0e34af7a746ac",
                         "installed_by": ["modules"]
                     },
+                    "filtlong": {
+                        "branch": "master",
+                        "git_sha": "41dfa3f7c0ffabb96a6a813fe321c6d1cc5b6e46",
+                        "installed_by": ["modules"]
+                    },
                     "flye": {
                         "branch": "master",
                         "git_sha": "3f5420aa22e00bd030a2556dfdffc9e164ec0ec5",
+                        "installed_by": ["modules"]
+                    },
+                    "nanofilt": {
+                        "branch": "master",
+                        "git_sha": "ddb0d667cf6cdee3bab9497241de4bbf6b88d8cc",
                         "installed_by": ["modules"]
                     },
                     "prinseqplusplus": {

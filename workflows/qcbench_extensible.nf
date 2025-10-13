@@ -4,14 +4,11 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { COPYFASTQ              } from '../modules/local/copyfastq/main'
-include { CHOPPER                } from '../modules/nf-core/chopper/main'
-include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
 include { FLYE                   } from '../modules/nf-core/flye/main'
 include { QUAST                  } from '../modules/nf-core/quast/main'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { create_qctool_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
-include { create_flye_samplesheet   } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { get_enabled_tools; create_qctool_samplesheet; create_assembler_samplesheet } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
+include { QC_TOOL_EXECUTOR; ASSEMBLER_EXECUTOR } from '../subworkflows/local/module_executor_helper'
 include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_qcbench_pipeline'
 
 /*
@@ -20,7 +17,7 @@ include { create_quast_samplesheet  } from '../subworkflows/local/utils_nfcore_q
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-workflow QCBENCH {
+workflow QCBENCH_EXTENSIBLE {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
@@ -31,54 +28,48 @@ workflow QCBENCH {
 
     /*
     ====================================================================================
-        QC TOOLS
+        EXTENSIBLE QC TOOLS STAGE
     ====================================================================================
     */
-    params.quality_scores_list = params.quality_scores?.split(',') as List
 
-    //
-    // MODULE: COPYFASTQ
-    //
-    ch_samplesheet_copyfastq = create_qctool_samplesheet(ch_samplesheet, 'copyfastq', [0])
-    COPYFASTQ(ch_samplesheet_copyfastq)
-    ch_copyfastq = COPYFASTQ.out.fastq
+    // Load QC tools configuration
+    def enabled_qctools = get_enabled_tools("qc_tools")
+    def qc_output_channels = []
 
-    //
-    // MODULE: CHOPPER
-    //
-    ch_samplesheet_qs_chopper = create_qctool_samplesheet(ch_samplesheet, 'chopper', params.quality_scores_list)
-    CHOPPER(ch_samplesheet_qs_chopper)
-    ch_chopper_filtered = CHOPPER.out.fastq
-    ch_versions = ch_versions.mix(CHOPPER.out.versions)
+    // Execute enabled QC tools dynamically based on configuration
+    enabled_qctools.each { tool_name, tool_config ->
+        def ch_samplesheet_tool = create_qctool_samplesheet(ch_samplesheet, tool_name, tool_config.options)
+        QC_TOOL_EXECUTOR(ch_samplesheet_tool, tool_name, tool_config)
+        qc_output_channels.add(QC_TOOL_EXECUTOR.out.output)
+        ch_versions = ch_versions.mix(QC_TOOL_EXECUTOR.out.versions)
+    }
 
-    //
-    // MODULE: PRINSEQ++
-    //
-    ch_samplesheet_qs_prinseq = create_qctool_samplesheet(ch_samplesheet, 'prinseq', params.quality_scores_list)
-    PRINSEQPLUSPLUS(ch_samplesheet_qs_prinseq)
-    ch_prinseq_filtered = PRINSEQPLUSPLUS.out.good_reads
-    ch_versions = ch_versions.mix(PRINSEQPLUSPLUS.out.versions)
+    // Merge all QC tool outputs into one channel
+    if (qc_output_channels.size() == 0) {
+        error "No QC tools are enabled or available. Please check conf/modules.yml"
+    }
 
-    //
-    // Merge all items emitted by the different QC tools into one channel
-    //
-    ch_qc_tools = ch_chopper_filtered
-        .mix(ch_copyfastq, ch_prinseq_filtered)
+    ch_qc_tools = qc_output_channels.size() == 1 ?
+        qc_output_channels[0] :
+        qc_output_channels[0].mix(*qc_output_channels.drop(1))
 
     /*
     ====================================================================================
         ASSEMBLY
     ====================================================================================
     */
-    params.flye_modes_list = params.flye_modes?.split(',') as List
+    def enabled_assemblers = get_enabled_tools("assembler")
+    def assembler_names = enabled_assemblers.keySet().toList()
+    def first_assembler_name = assembler_names[0]
+    def first_assembler_config = enabled_assemblers[first_assembler_name]
 
-    //
-    // MODULE: FLYE
-    //
-    ch_samplesheet_flye = create_flye_samplesheet(ch_qc_tools, params.flye_modes_list)
-    FLYE(ch_samplesheet_flye.samplesheet, ch_samplesheet_flye.mode)
-    ch_assembly = FLYE.out.fasta
-    ch_versions = ch_versions.mix(FLYE.out.versions)
+    if (enabled_assemblers.size() == 0) {
+        error "No assemblers are enabled or available. Please check conf/modules.yml"
+    }
+    ch_samplesheet_assembler = create_assembler_samplesheet(ch_qc_tools, first_assembler_config.options)
+    ASSEMBLER_EXECUTOR(ch_samplesheet_assembler)
+    ch_assembly = ASSEMBLER_EXECUTOR.out.output
+    ch_versions = ch_versions.mix(ASSEMBLER_EXECUTOR.out.versions)
 
     /*
     ====================================================================================
@@ -100,7 +91,7 @@ workflow QCBENCH {
     softwareVersionsToYAML(ch_versions)
         .collectFile(
             storeDir: "${params.outdir}/pipeline_info",
-            name: 'minion_qcbench_software_versions.yml',
+            name: 'qcbench_software_versions.yml',
             sort: true,
             newLine: true
         ).set { ch_collated_versions }

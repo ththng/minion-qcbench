@@ -1,8 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://raw.githubusercontent.com/minion/qcbench/master/nextflow_schema.json",
-    "title": "minion/qcbench pipeline parameters",
-    "description": "Benchmarking quality control tools for MinION data",
+    "title": "QCbench pipeline parameters",
+    "description": "Benchmarking quality control tools for sequencing data",
     "type": "object",
     "definitions": {
         "input_output_options": {
@@ -20,7 +20,7 @@
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row.",
+                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 2 columns, and a header row.",
                     "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
@@ -174,20 +174,6 @@
         }
     ],
     "properties": {
-        "quality_scores": {
-            "type": "string",
-            "description": "minimum Phred average quality scores by which the qc tools filter, separated by comma",
-            "pattern": "^\\d+(,\\d+)*$"
-        },
-        "flye_modes": {
-            "type": "string",
-            "description": "flye modes used for assembly, representing the underlying sequencing technology, separated by comma (supported options: pacbio-raw, pacbio-corr, pacbio-hifi, nano-raw, nano-corr, nano-hq)",
-            "pattern": "^(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq)(,\\s*(pacbio-raw|pacbio-corr|pacbio-hifi|nano-raw|nano-corr|nano-hq))*$"
-        },
-        "flye_genome_size": {
-            "type": "string",
-            "description": "estimated genome size e.g. 4.4m"
-        },
         "quast_refseq": {
             "type": "string",
             "description": "path to reference genome file"
@@ -196,6 +182,5 @@
             "type": "string",
             "description": "path to file with genomic feature positions in the reference genome"
         }
-    },
-    "required": ["quality_scores", "flye_modes"]
+    }
 }

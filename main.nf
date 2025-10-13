@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    minion/qcbench
+    QCbench
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
@@ -13,7 +13,7 @@ nextflow.enable.dsl = 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { QCBENCH  } from './workflows/qcbench'
+include { QCBENCH_EXTENSIBLE  } from './workflows/qcbench_extensible'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_qcbench_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_qcbench_pipeline'
 
@@ -26,7 +26,7 @@ include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_qcbe
 //
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
-workflow MINION_QCBENCH {
+workflow QCBENCH {
 
     take:
     samplesheet // channel: samplesheet read in from --input
@@ -36,12 +36,12 @@ workflow MINION_QCBENCH {
     //
     // WORKFLOW: Run pipeline
     //
-    QCBENCH (
+    QCBENCH_EXTENSIBLE (
         samplesheet
     )
 
     emit:
-    QCBENCH.out.quast_report_dir // channel: /path/to/quast_report_directory
+    QCBENCH_EXTENSIBLE.out.quast_report_dir // channel: /path/to/quast_report_directory
 
 }
 /*
@@ -66,16 +66,16 @@ workflow {
         params.outdir,
         params.input
     )
-    
+
     //
     // WORKFLOW: Run main workflow
     //
-    MINION_QCBENCH (
+    QCBENCH (
         PIPELINE_INITIALISATION.out.samplesheet
     )
 
     // Print the Quast report directory to stdout
-    MINION_QCBENCH.out.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
+    QCBENCH.out.view { meta, path -> "The quast report for ${meta["id"]} is stored in ${path}." }
 
     //
     // SUBWORKFLOW: Run completion tasks

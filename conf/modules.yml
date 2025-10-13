@@ -1,0 +1,63 @@
+# Configuration of QC tools and assembler for benchmarking
+# This file defines which quality control tools and assemblers are available and which options you want to use in the benchmarking
+# Tools can be enabled/disabled and configured without modifying the pipeline code
+
+qc_tools:
+  # Baseline tool - no filtering (always enabled)
+  copyfastq:
+    enabled: true
+    type: "local"
+    output_name: "fastq"
+
+  # Chopper - quality filtering for nanopore data
+  chopper:
+    enabled: true
+    type: "nf-core"
+    extra_inputs:
+      - name: "fasta"
+        type: "path"
+        value: "[]"
+    output_name: "fastq"
+    options:
+      - option: "--quality"
+        values: [15]
+        additional_options: "-l 1000"
+      - option: "--maxgc"
+        values: [0.8]
+        additional_options: "-l 1000"
+
+  # PRINSEQ++ - multi-threaded quality control
+  prinseqplusplus:
+    enabled: true
+    type: "nf-core"
+    output_name: "good_reads"
+    options:
+      - option: "-min_qual_mean"
+        values: [15]
+        additional_options: "-min_len 1000"
+
+  # Example: NanoFilt - another quality filter (disabled by default)
+  nanofilt:
+    enabled: true
+    type: "nf-core"
+    extra_inputs:
+      - name: "summary_file"
+        type: "path"
+        value: "[]"
+    output_name: "filtreads"
+    options:
+      - option: "--quality"
+        values: [13]
+
+assembler:
+  flye:
+    enabled: true
+    type: "nf-core"
+    extra_inputs:
+      - name: "mode"
+        type: "val"
+        value: "--nano-corr"
+    output_name: "fasta"
+    options:
+      - option: "-g"
+        values: ["4.4m"]

@@ -5,6 +5,9 @@ results/
 testing/
 testing*
 *.pyc
-/data/
 .nf-test
 .nf-test.log
+data/ERR9030248.fastq.gz
+data/ERR9030346.fastq.gz
+data/GCF_019454365.1_ASM1945436v1_genomic.fna
+data/genomic.gff

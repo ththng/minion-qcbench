@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the minion-qcbench pipeline
+// Subworkflow with functionality specific to the QCbench pipeline
 //
 
 /*
@@ -53,7 +53,7 @@ workflow PIPELINE_INITIALISATION {
     //
     pre_help_text = workflowHeader(monochrome_logs)
     post_help_text = '\n'
-    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR> --quality_scores <SCORE1,SCORE2,...> --flye_modes <FLYE_MODE1,FLYE_MODE2,...>"
+    def String workflow_command = "nextflow run ${workflow.manifest.name} -profile <docker/singularity/.../institute> --input samplesheet.csv --outdir <OUTDIR>"
     UTILS_NFVALIDATION_PLUGIN (
         help,
         workflow_command,
@@ -76,8 +76,20 @@ workflow PIPELINE_INITIALISATION {
     Channel
         .fromSamplesheet("input")
         .map {
-            meta, fastq ->
-                return [ meta + [ single_end:true ], [ fastq ] ]
+            meta, fastq_1, fastq_2 ->
+                if (!fastq_2) {
+                    return [ meta.id, meta + [ single_end:true ], [ fastq_1 ] ]
+                } else {
+                    return [ meta.id, meta + [ single_end:false ], [ fastq_1, fastq_2 ] ]
+                }
+        }
+        .groupTuple()
+        .map {
+            validateInputSamplesheet(it)
+        }
+        .map {
+            meta, fastqs ->
+                return [ meta, fastqs.flatten() ]
         }
         .set { ch_samplesheet }
 
@@ -119,34 +131,98 @@ workflow PIPELINE_COMPLETION {
 */
 
 //
-// Add information to the meta map about which QC tool is used and which min mean quality score is set as threshold
-// If multiple quality thresholds are tested for one tool, multiple samplesheets are returned (one for each quality threshold)
+// Validate channels from input samplesheet
 //
-def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_args) {
+def validateInputSamplesheet(input) {
+    def (metas, fastqs) = input[1..2]
+
+    // Check that multiple runs of the same sample are of the same datatype i.e. single-end / paired-end
+    def endedness_ok = metas.collect{ it.single_end }.unique().size == 1
+    if (!endedness_ok) {
+        error("Please check input samplesheet -> Multiple runs of a sample must be of the same datatype i.e. single-end or paired-end: ${metas[0].id}")
+    }
+
+    return [ metas[0], fastqs ]
+}
+
+//
+// Load QC tools configuration from YAML file
+//
+def load_tools_config() {
+    def config_file = file("${projectDir}/conf/modules.yml")
+    if (!config_file.exists()) {
+        error "QC tools configuration file not found: ${config_file}"
+    }
+
+    def yaml = new org.yaml.snakeyaml.Yaml()
+    def config = yaml.load(config_file.text)
+
+    return config
+}
+
+//
+// Get enabled tools from configuration
+// tool_type can be "qc_tools" or "assembler"
+//
+def get_enabled_tools(tool_type) {
+    def config = load_tools_config()
+    def enabled_tools = [:]
+
+    def section = config[tool_type]
+    if (section) {
+        section.each { tool_name, tool_config ->
+            if (tool_config.enabled) {
+                enabled_tools[tool_name] = tool_config
+            }
+        }
+    }
+
+    return enabled_tools
+}
+
+
+//
+// Add information to the meta map about which QC tool is used with which option and which value is set for that option
+// If multiple values are tested for option, multiple samplesheets are returned (one for each value per option)
+//
+def create_qctool_samplesheet(ch_samplesheet, qc_tool, qc_options) {
+    if (!qc_options) {
+        return ch_samplesheet.map { meta, filePath ->
+            [meta + [qc_tool: qc_tool], filePath]
+        }
+    }
     return ch_samplesheet.flatMap { meta, filePath ->
-        qc_args.collect { qc_arg ->
-            [meta + [qc_arg: qc_arg, qc: qc_tool], filePath]
+        qc_options.collectMany { option_config ->
+            def qc_option = option_config.option
+            def additional_options = option_config?.additional_options ?: ''
+            option_config.values.collect { qc_val ->
+                def meta_map = meta + [qc_tool: qc_tool, qc_option: qc_option, qc_val: qc_val]
+                if (additional_options) {
+                    meta_map['additional_options'] = additional_options
+                }
+                [meta_map, filePath]
+            }
         }
     }
 }
 
-//
-// Add information to the meta map about which Flye mode is used
-// If multiple Flye modes are tested, multiple samplesheets (one for each mode) are created
-// Since Flye has 2 input channels (one for the sample, one for the mode), 2 channels are returned for each samplesheet
-//
-def create_flye_samplesheet(ch_samplesheet, modes) {
-    return ch_samplesheet
-        .flatMap { meta, filePath ->
-            modes.collect { mode ->
-                [meta + [mode: mode], filePath]
+def create_assembler_samplesheet(ch_samplesheet, assembler_options) {
+    if (!assembler_options) {
+        return ch_samplesheet
+    }
+    return ch_samplesheet.flatMap { meta, filePath ->
+        assembler_options.collectMany { option_config ->
+            def assembler_option = option_config.option
+            def additional_options = option_config?.additional_options ?: ''
+            option_config.values.collect { assembler_val ->
+                def meta_map = meta + [assembler_option: assembler_option, assembler_val: assembler_val]
+                if (additional_options) {
+                    meta_map['assembler_additional_options'] = additional_options
+                }
+                [meta_map, filePath]
             }
-        } 
-        .multiMap { meta, fastq ->
-            def mode_input = "--" + meta.mode
-            samplesheet: [meta, fastq]
-            mode: mode_input
         }
+    }
 }
 
 //
