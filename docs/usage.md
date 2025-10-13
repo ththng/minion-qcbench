@@ -1,9 +1,9 @@
-# minion-qcbench: Usage
+# qcbench: Usage
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Furthermore we have used [nf-test](https://www.nf-test.com) to write pipeline tests and [Apptainer](https://apptainer.org) as container system.
 
 ## Dynamic QC Tools System
 
-The pipeline features an extensible QC tools system configured in `conf/modules.yml`. You can enable/disable tools and add new ones without code changes.
+The pipeline features an extensible QC tools system configured in `conf/modules.yml`. You can enable/disable tools and add new ones without pipeline code changes. Currently, dynamic integration of tools is limited to nf-core modules.
 
 ## Pipeline Validation: Running Tests
 Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
@@ -22,104 +22,152 @@ To run these tests, navigate to the project folder `minion-qcbench` and run:
 nf-test test tests/main.nf.test --profile singularity
 ```
 
-## Samplesheet input
+## 1. Prepare the [samplesheet](../data/samplesheet.csv)
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with 2 columns, and a header row as shown in the example below.
-
-Use this parameter to specify its location.
-
-```bash
---input '[path to samplesheet file]'
-```
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. It has to be a comma-separated file with at least 2 columns, and a header row as shown in the example below.
 
 ### Full samplesheet
-
-The samplesheet can have as many columns as you desire, however, there is a strict requirement for the first 2 columns to match those defined in the table below.
 
 | Column    | Description                                                                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sample`  | Custom sample name. |
-| `fastq` | Full path to FastQ file for long-read sequencing data. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                             |
+| `fastq_1` | Full path to FastQ file for reads 1. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz". Required.|
+| `fastq_2` | Full path to FastQ file for reads 2 in case of paired-end reads. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz". Optional.|
 
 **Example `samplesheet.csv`**
 
+In this case, single-end reads are provided, so that `fastq_2` is omitted.
 ```csv
-sample,fastq
+sample,fastq_1
 sample1,sample1.fastq.gz
 sample2,sample2.fastq.gz
 ```
 
 Each row represents a sample with its corresponding FastQ file path.
 
-## Running the pipeline
+## 2. Configure the QC tools and assembler in the [modules.yml](../conf/modules.yml)
+QCbench uses a YAML configuration file (`config/qc_tools.yml`) to define which QC tools and parameters to benchmark and which assembler to use.
 
-The pipeline uses a **dynamic code generation system** and can be executed in two ways:
+The file is divided into a `qc_tools` and an `assembler` section. These sections contain configuration blocks representing the tools to be included in the pipeline.
 
-### Method 1: Using the Wrapper Script (Recommended)
+> Note: Please be aware that QCbench currently supports only nf-core modules. The following guide on configuring tools assumes that the tools being integrated are available as nf-core modules.
 
-The wrapper script `qcbench.sh` handles the dynamic code generation automatically:
+### Example configuration block
+The following guide uses the QC tool [`chopper`](https://github.com/wdecoster/chopper) as an example.
 
+```yaml
+chopper: # name of the nf-core module
+  enabled: true
+  type: "nf-core"
+  output_name: "fastq"
+  options:
+    - option: "--quality"
+      values: [13, 15]
+      additional_options: "-l 1000"
+    - option: "--maxgc"
+      values: [0.8]
+      additional_options: "-l 1000"
+  extra_inputs:
+    - name: "fasta"
+      type: "path"
+      value: []
+```
+| Key    | Type | Description |
+| --------- | ------------ | ------------ | 
+| `enabled`  | `true` or `false` | Specifies whether the tool should be included in the pipeline. |
+| `type` | `local` or `nf-core` | Indicates whether the tool is available as a `local` or an `nf-core module`. As mentioned before this guide assumes that the tool is available as `nf-core module`. |
+| `output_name` | `string` | Specifies the name of the output channel that contains the preprocessed reads (it's specific for each tool) |
+| `options`        | `list` of objects | A list of command-line options to benchmark. Each object contains:                             |
+|                  |                   | `option`: The command-line option to test (e.g., `--quality`).                               |
+|                  |                   | `values`: A list of values to test for the option (e.g., `[13, 15]`).                        |
+|                  |                   | `additional_options`: Options always included but not varied (e.g., `-l 1000`).             |
+| `extra_inputs`   | `list` of objects | A list of additional inputs required by the tool. Each object contains:                        |
+|                  |                   | `name`: A descriptive name for the input (e.g., `fasta`).                                    |
+|                  |                   | `type`: The type of input (`path`, `val`, or `tuple`).                                       |
+|                  |                   | `value`: The value of the input (e.g., `[]` for an empty file path).               |
+
+
+The following sections explain how to gather the necessary information to configure a module.
+
+### Find nf-core modules documentation
+The nf-core module documentation for chopper can be found here: https://nf-co.re/modules/chopper/.
+
+There you can find the following information:
+
+#### `output_name`
+![Screenshot of the output documentation for the chopper nf-core module](../assets/chopper_output.png)
+In this case the name of the output channel that contains the preprocessed reads is "fastq".
+
+#### `extra_inputs`
+![Screenshot of the input documentation for the chopper nf-core module](../assets/chopper_input.png)
+QCbench requires QC tools to accept a tuple consisting of a meta map and the path to the reads as input, which is compatible with chopper (and most of the other QC tools). However, chopper also requires a second input, a `fasta` file, which must be specified in the module configuration.
+
+### Find the command-line tool documentation
+The documentation for chopper can be found here: https://github.com/wdecoster/chopper.
+
+There you can find the following information:
+
+#### `options`
+![Screenshot of the options section from the chopper tool documentation](../assets/chopper_options.png)
+The screenshot shows some of the command-line options available for chopper. In this example configuration, we aim to benchmark the `quality` filtering against the `maxgc` filtering option, among others. Additionally, we want to filter out all reads shorter than 1000 bases. This length filter is not part of the benchmarking process but is applied as an additional step. Since we are testing two different values for `quality` filtering and one value for `maxgc` filtering, the following chopper executions will be performed:
 ```bash
-# Generate dynamic code and execute in one step
-./qcbench.sh execute -profile singularity \
-   --input data/samplesheet.csv \
-   --outdir results \
-   --quality_scores 13,15 \
-   --flye_modes nano-corr,nano-hq
-
-# Or generate code first, then execute separately
-./qcbench.sh generate                    # Generate dynamic QC tool code
-./qcbench.sh execute -profile singularity \
-   --input data/samplesheet.csv \
-   --outdir results
+chopper ... − l 1000 −−quality 13
+chopper ... − l 1000 −−quality 15
+chopper ... − l 1000 −−maxgc 0.8
 ```
 
-### Method 2: Direct Nextflow Execution
+## 3. Generate pipeline code
 
-For direct Nextflow execution, you must first generate the dynamic code:
+Based on the configuration in the `modules.yml` file, QCbench identifies which modules need to be installed from `nf-core` and automatically generates the code needed to integrate and invoke these modules within the pipeline. Both module installation and code generation are automated when you run the following command:
 
 ```bash
-# First generate the dynamic code
+# Run this command from the project root
 ./qcbench.sh generate
-
-# Then run with standard Nextflow
-nextflow run . \
-   -profile singularity \
-   --input data/samplesheet.csv \
-   --outdir results \
-   --quality_scores 13,15 \
-   --flye_modes nano-corr,nano-hq
 ```
 
-### File Structure
+After execution, the module code will be located under [modules/nf-core](../modules/nf-core/), and the modules.config and main.nf files will be generated, as shown below.
 
-Assuming the following folder structure:
 ```
-.
-├── data                      # Data folder containing the samplesheet
-│   ├── samplesheet.csv       # Samplesheet referencing the FASTQ files
-│   ├── sample1.fastq.gz
-│   ├── sample2.fastq.gz
-│   └── ...
-└── minion-qcbench            # This project
-    ├── qcbench.sh            # Wrapper script
-    ├── conf/modules.yml     # QC tools configuration
-    └── ...
+qcbench
+├── conf
+|    └── modules.config     # module configuration
+├── modules
+|    └── nf-core
+|         └── chopper       # module code
+└── subworkflows
+|    └── local
+|         └── module_executor_helper
+|              └── main.nf  # contains module invokation
+```
+
+### Adjustments to [modules.config](../conf/modules.config)
+After the code generation, minor adjustments to the `modules.config` file may be required. To verify this, the module code should be reviewed.
+
+For the chopper module, the command-line options are written to the `ext.args2` key, as shown in the screenshot of the chopper module code below. The `ext.args` key is used for `zcat` options. However, the code generation defaults to writing tool options to `ext.args`. To ensure correct execution, you need to update the `modules.config` file by changing `ext.args` to `ext.args2` for the chopper module.
+
+![Screenshot of the chopper module code](../assets/chopper_module.png)
+
+## Running the pipeline
+To run the pipeline, use the following minimal command:
+```bash
+# Run this command from the project root
+./qcbench.sh execute -profile singularity
+```
+Alternatively, you can execute the pipeline directly with Nextflow, bypassing the wrapper script:
+```bash
+nextflow run . -profile singularity
 ```
 
 **Required parameters**
 | Parameter | Description |
 | --------- | ------- |
 | `-profile <PROFILE>` | Configuration profile; available options include `singularity`, `docker`, `conda`, among others. For this pipeline, `singularity` is recommended, as the pipeline was developed and tested using this profile. See [below](#core-nextflow-arguments) for more information about profiles. |
-| `--input <PATH/TO/SAMPLESHEET.CSV>` | Path to the samplesheet |
-| `--outdir <OUTDIR>` | The output directory where the results will be saved |
-| `--quality_scores <SCORE1,SCORE2,...>` | Minimum Phred average quality scores by which the QC tools filter, separated by comma |
-| `--flye_modes <FLYE_MODE1,FLYE_MODE2,...>` | Flye modes used for assembly, representing the underlying sequencing technology, separated by comma (supported options: `pacbio-raw`, `pacbio-corr`, `pacbio-hifi`, `nano-raw`, `nano-corr`, `nano-hq`) |
 
 **Optional parameters**
 | Parameter | Description |
 | --------- | ------- |
-| `--flye_genome_size <GENOME_SIZE>` | Estimated genome size e.g. `4.4m` |
+| `--input <PATH/TO/SAMPLESHEET.CSV>` | Path to the samplesheet. Only required if it is not located at `data/samplesheet.csv`. |
+| `--outdir <OUTDIR>` | The output directory where the results will be saved. Defaults to `results` if not provided. |
 | `--quast_refseq <PATH/TO/REFERENCE_GENOME>` | Path to reference genome file |
 | `--quast_features <PATH/TO/GENOMIC_FEATURES>` | Path to file with genomic feature positions in the reference genome; valid file formats are described in the [QUAST manual](https://quast.sourceforge.net/docs/manual.html#sec2.2) |
 

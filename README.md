@@ -1,40 +1,69 @@
 ## Introduction
 
-**minion-qcbench** is a bioinformatics pipeline that benchmarks different quality control tools on long-read sequencing data. It takes a samplesheet and sequencing data (FASTQ files) as input, pre-processes them with different quality control tools, assembles these pre-processed reads using Flye and compares the resulting assemblies using QUAST, which computes various quality metrics and summarises them in reports.
+**QCbench** is a flexible benchmarking framework built with Nextflow and based on the nf-core ecosystem. It evaluates user-provided quality control (QC) tools and parameter settings in genome sequencing workflows.
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
+QCbench dynamically integrates user-defined QC tools and their command-line options through a configuration file. Currently, dynamic integration is limited to tools available as nf-core modules. This allows users to test multiple QC strategies and assemblers without modifying pipeline code. The pipeline runs each QC/parameter combination, assembles the processed reads, and evaluates assembly quality using QUAST, which computes various quality metrics and summarises them in reports, thus providing a structured comparison across all tested configurations.
+![Schematic overview of the QCbench pipeline setup with example QC tools](assets/pipeline_overview.png)
 
-1. Filter reads using [`Chopper`](https://github.com/wdecoster/chopper) or [`PRINSEQ++`](https://github.com/Adrian-Cantu/PRINSEQ-plus-plus) by a minimum average phred score or leave the reads unfiltered
-2. Assemble the preprocessed sequencing data using [`Flye`](https://github.com/fenderglass/Flye)
-3. Calculate quality metrics for the assemblies [`QUAST`](https://github.com/ablab/quast)
+By automatically integrating QC tools into the benchmarking pipeline based on user configuration, QCbench simplifies the selection and optimization of QC tools and parameters.
 
 ## Usage
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow.
 
-First, prepare a samplesheet with your input data that looks as follows:
+> See the [usage documentation](docs/usage.md) for detailed instructions.
+
+### 1. Prepare the [samplesheet](data/samplesheet.csv)
+
+First, prepare a samplesheet with your input data that looks as follows for single-end reads:
 
 `samplesheet.csv`:
 
 ```csv
-sample,fastq
+sample,fastq_1
 sample1,sample1.fastq.gz
 sample2,sample2.fastq.gz
 ```
 
-Each row represents a sample with the sample ID, the path to the respective FASTQ file.
+Each row represents a sample with the sample ID, the path to the respective FASTQ file. For paired-end reads, add a column `fastq_2` and fill out the samplesheet accordingly.
 
-You can run the pipeline using:
+### 2. Configure the QC tools and assembler in the [modules.yml](conf/modules.yml)
+QCbench uses a YAML configuration file (`config/qc_tools.yml`) to define which QC tools and parameters to benchmark and which assembler to use.
 
-```bash
-./qcbench.sh execute -profile singularity \
-   --input data/samplesheet.csv \
-   --outdir results \
-   --quality_scores 13,15 \
-   --flye_modes nano-corr,nano-hq
+Here, an example configuration block for the QC tool `chopper` is shown:
+```yaml
+chopper: # name of the nf-core module
+  enabled: true
+  type: "nf-core"
+  output_name: "fastq"
+  options:
+    - option: "--quality" # command-line option to benchmark
+      values: [13, 15] # list of values to test for this option
+      additional_options: "-l 1000" # options always included (not varied)
+    - option: "--maxgc"
+      values: [0.8]
+      additional_options: "-l 1000"
+  extra_inputs:
+    - name: "fasta"
+      type: "path" # "path", "val", or "tuple"
+      value: []
 ```
 
-The pipeline uses a configuration-driven approach for QC tools. Edit `conf/modules.yml` to enable/disable tools without code changes. See the [usage documentation](docs/usage.md) for detailed instructions.
+### 3. Generate pipeline code
+Based on the configuration in the `modules.yml` file, QCbench determines which modules need to be installed from `nf-core` and automatically generates the necessary code to integrate and invoke these modules within the pipeline. Both, the module installation and code generation, are automated when you execute the following command:
+
+```bash
+# Run this command from the project root
+./qcbench.sh generate
+```
+
+Minor adjustments in the code may be required. See the [usage documentation](docs/usage.md) for detailed instructions.
+
+### 4. Execute the pipeline
+
+```bash
+# Run this command from the project root
+./qcbench.sh execute -profile singularity
+```
 
 ## Output
 The final step of the pipeline is the execution of [`QUAST`](https://github.com/ablab/quast), which evaluates the quality of the assembled genome. QUAST generates a comprehensive report that provides insights into the accuracy and completeness of the assembly. This report includes various metrics such as contig counts, N50, GC content, and alignment statistics against the reference genome (if provided). For more information about QUAST reports, see <https://quast.sourceforge.net/docs/manual.html>.
@@ -43,10 +72,9 @@ Upon completion of the pipeline, the QUAST reports can be found in the directory
 
 **Example**
 ```
-.
-├── data                      # Data folder containing the samplesheet
-├── minion-qcbench            # This project
-└── results                   # --outdir is set to "results"
+qcbench                  # this project
+├── ...
+└── results              # --outdir is set to "results"
      ├── ...
      └── quast
           ├── sample1

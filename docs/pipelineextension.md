@@ -1,4 +1,4 @@
-# minion-qcbench: Extending the pipeline
+# qcbench: Extending the pipeline
 
 This page provides instructions for adding additional quality control tools to the pipeline. While the default pipeline includes options for filtering reads with [`Chopper`](https://github.com/wdecoster/chopper) or [`PRINSEQ++`](https://github.com/Adrian-Cantu/PRINSEQ-plus-plus), you may want to integrate other tools for the benchmarking.
 
