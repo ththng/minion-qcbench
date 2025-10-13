@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Dynamic QC Tools Pipeline Wrapper
-# This script reads the QC tools configuration and dynamically generates
+# This script reads the QC tools and assembler configuration and dynamically generates
 # the necessary module imports and invokations in the helper file before running Nextflow.
 
 set -e

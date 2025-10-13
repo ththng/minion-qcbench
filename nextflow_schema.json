@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://raw.githubusercontent.com/minion/qcbench/master/nextflow_schema.json",
-    "title": "qcbench pipeline parameters",
+    "title": "QCbench pipeline parameters",
     "description": "Benchmarking quality control tools for sequencing data",
     "type": "object",
     "definitions": {

@@ -1,5 +1,5 @@
 {
-    "name": "qcbench",
+    "name": "QCbench",
     "homePage": "https://github.com/ththng/qcbench",
     "repos": {
         "https://github.com/nf-core/modules.git": {

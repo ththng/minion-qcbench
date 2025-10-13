@@ -1,5 +1,5 @@
 //
-// Subworkflow with functionality specific to the qcbench pipeline
+// Subworkflow with functionality specific to the QCbench pipeline
 //
 
 /*

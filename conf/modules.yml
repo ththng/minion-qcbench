@@ -1,5 +1,5 @@
-# QC Tools Configuration
-# This file defines which quality control tools are available and which options you want to use in the benchmarking
+# Configuration of QC tools and assembler for benchmarking
+# This file defines which quality control tools and assemblers are available and which options you want to use in the benchmarking
 # Tools can be enabled/disabled and configured without modifying the pipeline code
 
 qc_tools:
