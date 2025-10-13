@@ -1,11 +1,12 @@
 ## Introduction
 
-**QCbench** is a flexible benchmarking framework built with Nextflow and based on the nf-core ecosystem. It evaluates user-provided quality control (QC) tools and parameter settings in genome sequencing workflows.
+**QCbench** is a flexible benchmarking framework built with Nextflow and based on the nf-core ecosystem. It benchmarks user-provided quality control (QC) tools and parameter settings in genome sequencing workflows.
 
-QCbench dynamically integrates user-defined QC tools and their command-line options through a configuration file. Currently, dynamic integration is limited to tools available as nf-core modules. This allows users to test multiple QC strategies and assemblers without modifying pipeline code. The pipeline runs each QC/parameter combination, assembles the processed reads, and evaluates assembly quality using QUAST, which computes various quality metrics and summarises them in reports, thus providing a structured comparison across all tested configurations.
+QCbench integrates user-defined QC tools and their command-line options into the benchmarking pipeline through a configuration file. Currently, it is limited to tools available as nf-core modules. This allows users to test multiple QC tools and their parameters and assemblers without modifying pipeline code. The benchmarking pipeline runs each QC tool/parameter combination, assembles the processed reads, and evaluates assembly quality using QUAST, which computes various quality metrics and summarises them in reports, thus providing a structured comparison across all tested configurations.
+
 ![Schematic overview of the QCbench pipeline setup with example QC tools](assets/pipeline_overview.png)
 
-By automatically integrating QC tools into the benchmarking pipeline based on user configuration, QCbench simplifies the selection and optimization of QC tools and parameters.
+By automatically integrating QC tools into the benchmarking pipeline based on user configuration, QCbench simplifies the creation of customized benchmarking workflows, enabling the selection and optimization of QC tools and parameters for specific experiments.
 
 ## Usage
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow.
@@ -45,7 +46,7 @@ chopper: # name of the nf-core module
   extra_inputs:
     - name: "fasta"
       type: "path" # "path", "val", or "tuple"
-      value: []
+      value: "[]"
 ```
 
 ### 3. Generate pipeline code

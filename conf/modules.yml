@@ -16,7 +16,7 @@ qc_tools:
     extra_inputs:
       - name: "fasta"
         type: "path"
-        value: []
+        value: "[]"
     output_name: "fastq"
     options:
       - option: "--quality"
@@ -43,7 +43,7 @@ qc_tools:
     extra_inputs:
       - name: "summary_file"
         type: "path"
-        value: []
+        value: "[]"
     output_name: "filtreads"
     options:
       - option: "--quality"

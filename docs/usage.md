@@ -1,26 +1,5 @@
-# qcbench: Usage
+# QCbench: Usage
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Furthermore we have used [nf-test](https://www.nf-test.com) to write pipeline tests and [Apptainer](https://apptainer.org) as container system.
-
-## Dynamic QC Tools System
-
-The pipeline features an extensible QC tools system configured in `conf/modules.yml`. You can enable/disable tools and add new ones without pipeline code changes. Currently, dynamic integration of tools is limited to nf-core modules.
-
-## Pipeline Validation: Running Tests
-Before running the full pipeline, it is recommended to execute the provided test cases to ensure that the pipeline is correctly configured and functioning as expected.
-
-Make sure to test your setup with `-profile test` before running the workflow on actual data. The `test` profile runs a minimal test, using a small dataset to quickly verify that the pipeline is working as expected with your setup. After navigating to the **parent** directory of the `minion-qcbench` project, run the following command:
-
-```bash
-nextflow run minion-qcbench -profile test,<docker/singularity>
-```
-
-### nf-test
-In addition to the minimal test provided by the nf-core `-profile test`, more detailed end-to-end pipeline tests are included. These tests are written using the [`nf-test`](https://www.nf-test.com) framework.
-
-To run these tests, navigate to the project folder `minion-qcbench` and run:
-```bash
-nf-test test tests/main.nf.test --profile singularity
-```
 
 ## 1. Prepare the [samplesheet](../data/samplesheet.csv)
 
@@ -39,16 +18,16 @@ You will need to create a samplesheet with information about the samples you wou
 In this case, single-end reads are provided, so that `fastq_2` is omitted.
 ```csv
 sample,fastq_1
-sample1,sample1.fastq.gz
-sample2,sample2.fastq.gz
+sample1,data/sample1.fastq.gz
+sample2,data/sample2.fastq.gz
 ```
 
 Each row represents a sample with its corresponding FastQ file path.
 
 ## 2. Configure the QC tools and assembler in the [modules.yml](../conf/modules.yml)
-QCbench uses a YAML configuration file (`config/qc_tools.yml`) to define which QC tools and parameters to benchmark and which assembler to use.
+QCbench uses a YAML configuration file (`config/qc_tools.yml`) to define which QC tools and parameters to benchmark and which assembler to use. You can enable/disable tools and add new ones without pipeline code changes.
 
-The file is divided into a `qc_tools` and an `assembler` section. These sections contain configuration blocks representing the tools to be included in the pipeline.
+The file is divided into a `qc_tools` and an `assembler` section. These sections contain configuration blocks representing the tools to be included in the pipeline. While multiple QC tools can be enabled and benchmarked against each other, only one assembler is integrated into the pipeline. If multiple assemblers are configured and enabled, only the first assembler configuration block will be used.
 
 > Note: Please be aware that QCbench currently supports only nf-core modules. The following guide on configuring tools assumes that the tools being integrated are available as nf-core modules.
 
@@ -70,58 +49,88 @@ chopper: # name of the nf-core module
   extra_inputs:
     - name: "fasta"
       type: "path"
-      value: []
+      value: "[]"
 ```
 | Key    | Type | Description |
 | --------- | ------------ | ------------ | 
 | `enabled`  | `true` or `false` | Specifies whether the tool should be included in the pipeline. |
-| `type` | `local` or `nf-core` | Indicates whether the tool is available as a `local` or an `nf-core module`. As mentioned before this guide assumes that the tool is available as `nf-core module`. |
-| `output_name` | `string` | Specifies the name of the output channel that contains the preprocessed reads (it's specific for each tool) |
+| `type` | `local` or `nf-core` | Indicates whether the tool is available as a `local` or an `nf-core module`. As mentioned before, this guide assumes that the tool is available as `nf-core module`. |
+| `output_name` | `string` | Specifies the name of the output channel that contains the preprocessed reads, which is specific for each tool |
 | `options`        | `list` of objects | A list of command-line options to benchmark. Each object contains:                             |
-|                  |                   | `option`: The command-line option to test (e.g., `--quality`).                               |
-|                  |                   | `values`: A list of values to test for the option (e.g., `[13, 15]`).                        |
-|                  |                   | `additional_options`: Options always included but not varied (e.g., `-l 1000`).             |
+|                  |                   | `option`: The command-line option to test as `string` (e.g., `"--quality"`)                              |
+|                  |                   | `values`: A list of values to test for the option (e.g., `[13, 15]`)                       |
+|                  |                   | `additional_options`: Options always included but not varied             |
 | `extra_inputs`   | `list` of objects | A list of additional inputs required by the tool. Each object contains:                        |
-|                  |                   | `name`: A descriptive name for the input (e.g., `fasta`).                                    |
-|                  |                   | `type`: The type of input (`path`, `val`, or `tuple`).                                       |
-|                  |                   | `value`: The value of the input (e.g., `[]` for an empty file path).               |
+|                  |                   | `name`: A descriptive name for the input                                    |
+|                  |                   | `type`: The type of input (`path`, `val`, or `tuple`)                                  |
+|                  |                   | `value`: The value of the input (e.g., `[]` for an empty file path)              |
 
+### Gathering information for configuration
+The following sections explain how to gather the necessary information to configure the chopper module as shown above.
 
-The following sections explain how to gather the necessary information to configure a module.
-
-### Find nf-core modules documentation
+#### nf-core modules documentation
 The nf-core module documentation for chopper can be found here: https://nf-co.re/modules/chopper/.
 
 There you can find the following information:
 
-#### `output_name`
+##### `output_name`
 ![Screenshot of the output documentation for the chopper nf-core module](../assets/chopper_output.png)
 In this case the name of the output channel that contains the preprocessed reads is "fastq".
 
-#### `extra_inputs`
+##### `extra_inputs`
 ![Screenshot of the input documentation for the chopper nf-core module](../assets/chopper_input.png)
-QCbench requires QC tools to accept a tuple consisting of a meta map and the path to the reads as input, which is compatible with chopper (and most of the other QC tools). However, chopper also requires a second input, a `fasta` file, which must be specified in the module configuration.
+QCbench requires QC tools to accept a tuple consisting of a meta map and the path to the reads as input, which is compatible with chopper (and most of the other QC tools). However, chopper also requires a second input, a reference `fasta` file, which must be specified in the module configuration under `extra_inputs`.
 
-### Find the command-line tool documentation
+Specify the `value` as a string, using the same syntax you would use in a Nextflow script.
+
+According to the description, the reference fasta file is optional. Therefore, the example configuration uses an empty file path as `value`, represented as `[]` in Nextflow. If you want to provide the reference fasta file, you would use the `file()` method in Nextflow. Thus, in the configuration, you would write `value: "file(path_to_file)"`.
+
+#### Command-line tool documentation
 The documentation for chopper can be found here: https://github.com/wdecoster/chopper.
 
 There you can find the following information:
 
-#### `options`
-![Screenshot of the options section from the chopper tool documentation](../assets/chopper_options.png)
-The screenshot shows some of the command-line options available for chopper. In this example configuration, we aim to benchmark the `quality` filtering against the `maxgc` filtering option, among others. Additionally, we want to filter out all reads shorter than 1000 bases. This length filter is not part of the benchmarking process but is applied as an additional step. Since we are testing two different values for `quality` filtering and one value for `maxgc` filtering, the following chopper executions will be performed:
+##### `options`
+In the chopper documentation you can find the command-line options available for chopper. These are the filtering options:
+```
+Filtering Options:
+  -q, --quality <MINQUAL>
+          Sets a minimum Phred average quality score
+          [default: 0]
+
+      --maxqual <MAXQUAL>
+          Sets a maximum Phred average quality score
+          [default: 1000]
+
+  -l, --minlength <MINLENGTH>
+          Sets a minimum read length
+          [default: 1]
+
+      --maxlength <MAXLENGTH>
+          Sets a maximum read length
+          [default: INF]
+
+      --mingc <MINGC>
+          Filter min GC content
+
+      --maxgc <MAXGC>
+          Filter max GC content
+...
+```
+In the example configuration, we want to try the `quality` filtering and the `maxgc` filtering option of chopper in the benchmarking. Additionally, we want to include another chopper option (`-l 1000`) alongside the filtering options being benchmarked.
+
+The options (`--quality` and `--maxgc`), their values and the additional options (`-l 1000`) are specified under `options`, where each option is configured as one object. Since we are testing two different values for `quality` filtering and one value for `maxgc` filtering, the following chopper executions will be performed:
 ```bash
-chopper ... − l 1000 −−quality 13
-chopper ... − l 1000 −−quality 15
-chopper ... − l 1000 −−maxgc 0.8
+chopper ... −l 1000 −−quality 13
+chopper ... −l 1000 −−quality 15
+chopper ... −l 1000 −−maxgc 0.8
 ```
 
 ## 3. Generate pipeline code
 
-Based on the configuration in the `modules.yml` file, QCbench identifies which modules need to be installed from `nf-core` and automatically generates the code needed to integrate and invoke these modules within the pipeline. Both module installation and code generation are automated when you run the following command:
+Based on the configuration in the `modules.yml` file, QCbench identifies which modules need to be installed from `nf-core` and automatically generates the code needed to integrate and invoke these modules within the pipeline. Both module installation and code generation are automated when you run the following command from the project root:
 
 ```bash
-# Run this command from the project root
 ./qcbench.sh generate
 ```
 
@@ -141,16 +150,39 @@ qcbench
 ```
 
 ### Adjustments to [modules.config](../conf/modules.config)
-After the code generation, minor adjustments to the `modules.config` file may be required. To verify this, the module code should be reviewed.
-
-For the chopper module, the command-line options are written to the `ext.args2` key, as shown in the screenshot of the chopper module code below. The `ext.args` key is used for `zcat` options. However, the code generation defaults to writing tool options to `ext.args`. To ensure correct execution, you need to update the `modules.config` file by changing `ext.args` to `ext.args2` for the chopper module.
-
-![Screenshot of the chopper module code](../assets/chopper_module.png)
-
-## Running the pipeline
-To run the pipeline, use the following minimal command:
+After the code generation, minor adjustments to the `modules.config` file may be required. To verify this, the module code should be reviewed. This is a code snippet from the chopper module code:
 ```bash
-# Run this command from the project root
+    zcat \\
+        $args \\
+        $fastq | \\
+    chopper \\
+        --threads $task.cpus \\
+        $fasta_filtering \\
+        $args2 | \\
+    gzip \\
+        $args3 > ${prefix}.fastq.gz
+
+```
+
+The chopper command-line options are written to the `ext.args2` key, as shown in the chopper process code. The `ext.args` key is used for `zcat` options. However, the code generation defaults to writing tool options to `ext.args`. To ensure correct execution, you need to update the `modules.config` file by changing `ext.args` to `ext.args2` for the chopper module.
+
+## 4. Running the pipeline
+### Pipeline validation
+You can test your setup with `-profile test` before running the workflow on actual data. The `test` profile runs a minimal test, using a small dataset to quickly verify that the pipeline is working as expected with your setup. Provide a small dataset in the [data/test-datasets](../data/test-datasets) directory and fill out the samplesheet. 
+
+Run the following command from the project root:
+
+```bash
+./qcbench.sh execute -profile test,singularity
+```
+or
+```bash
+nextflow run . -profile test,singularity
+```
+
+### Pipeline run
+To run the pipeline from the project root, use the following minimal command:
+```bash
 ./qcbench.sh execute -profile singularity
 ```
 Alternatively, you can execute the pipeline directly with Nextflow, bypassing the wrapper script:
